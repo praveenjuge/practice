@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "practice",
+    "slug": "practice",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": true,
+    "scheme": "practice",
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.praveenjuge.practice"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "9dcaabde-e8e9-4eaf-b603-faa06acc6707"
+      }
+    }
+  }
+}
