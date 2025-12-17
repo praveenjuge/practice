@@ -7,7 +7,7 @@ import {
 import {
   ThemePreferenceProvider,
   useThemePreference,
-} from "./theme-preference";
+} from "../components/theme-preference";
 import { NativeTabs, Icon, Label } from "expo-router/unstable-native-tabs";
 import { StatusBar } from "expo-status-bar";
 import { PlatformColor } from "react-native";

@@ -10,7 +10,7 @@ import {
   Image,
 } from "@expo/ui/swift-ui";
 import { ScrollView } from "react-native";
-import { useThemePreference } from "../theme-preference";
+import { useThemePreference } from "../../components/theme-preference";
 
 export default function SettingsScreen() {
   const { resolvedScheme } = useThemePreference();
