@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.praveenjuge.practice"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      "react-native-cloud-storage"
     ],
     "extra": {
       "router": {},
