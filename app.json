@@ -13,7 +13,13 @@
     },
     "plugins": [
       "expo-router",
-      "react-native-cloud-storage"
+      [
+        "react-native-cloud-storage",
+        {
+          "iCloudContainerEnvironment": "Development",
+          "iCloudContainerIdentifier": "iCloud.com.praveenjuge.practice"
+        }
+      ]
     ],
     "extra": {
       "router": {},
