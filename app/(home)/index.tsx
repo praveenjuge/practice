@@ -6,6 +6,7 @@ import {
   getTodayString,
   hasCheckInToday,
 } from "../../components/habits-store";
+import { createHabitContextHandlers } from "../../components/habit-context-actions";
 import {
   Host,
   HStack,
@@ -15,6 +16,7 @@ import {
   Text,
   Image,
   Button,
+  ContextMenu,
 } from "@expo/ui/swift-ui";
 
 export default function HomeScreen() {
@@ -25,8 +27,17 @@ export default function HomeScreen() {
     error,
     toggleCheckInToday,
     addHabit,
+    renameHabit,
+    deleteHabit,
   } = useHabits();
   const today = getTodayString();
+  const { handleToggle, handleEdit, handleDelete } = createHabitContextHandlers(
+    {
+      toggleCheckInToday,
+      renameHabit,
+      deleteHabit,
+    }
+  );
 
   const handleAddOpen = () => {
     if (Platform.OS === "ios" && "prompt" in Alert) {
@@ -84,41 +95,63 @@ export default function HomeScreen() {
               habits.map((habit) => {
                 const checkedToday = hasCheckInToday(habit.checkins, today);
                 return (
-                  <Button
-                    key={habit.id}
-                    onPress={() => router.push(`/habit/${habit.id}`)}
-                  >
-                    <HStack>
-                      <HStack spacing={10}>
-                        <Button
-                          onPress={() => {
-                            void toggleCheckInToday(habit.id);
-                          }}
-                        >
+                  <ContextMenu key={habit.id} activationMethod="longPress">
+                    <ContextMenu.Items>
+                      <Button
+                        systemImage={
+                          checkedToday ? "circle" : "checkmark.circle"
+                        }
+                        onPress={() => handleToggle(habit)}
+                      >
+                        {checkedToday ? "Mark Incomplete" : "Mark Complete"}
+                      </Button>
+                      <Button
+                        systemImage="pencil"
+                        onPress={() => handleEdit(habit)}
+                      >
+                        Edit
+                      </Button>
+                      <Button
+                        role="destructive"
+                        systemImage="trash"
+                        onPress={() => handleDelete(habit)}
+                      >
+                        Delete
+                      </Button>
+                    </ContextMenu.Items>
+                    <ContextMenu.Trigger>
+                      <Button onPress={() => router.push(`/habit/${habit.id}`)}>
+                        <HStack>
+                          <HStack spacing={10}>
+                            <Button onPress={() => handleToggle(habit)}>
+                              <Image
+                                size={22}
+                                systemName={
+                                  checkedToday
+                                    ? "checkmark.circle.fill"
+                                    : "circle"
+                                }
+                                color={
+                                  checkedToday
+                                    ? (PlatformColor(
+                                        "systemGreen"
+                                      ) as unknown as string)
+                                    : "secondary"
+                                }
+                              />
+                            </Button>
+                            <Text color="primary">{habit.name}</Text>
+                          </HStack>
+                          <Spacer />
                           <Image
-                            size={22}
-                            systemName={
-                              checkedToday ? "checkmark.circle.fill" : "circle"
-                            }
-                            color={
-                              checkedToday
-                                ? (PlatformColor(
-                                    "systemGreen"
-                                  ) as unknown as string)
-                                : "secondary"
-                            }
+                            systemName="chevron.right"
+                            size={14}
+                            color="secondary"
                           />
-                        </Button>
-                        <Text color="primary">{habit.name}</Text>
-                      </HStack>
-                      <Spacer />
-                      <Image
-                        systemName="chevron.right"
-                        size={14}
-                        color="secondary"
-                      />
-                    </HStack>
-                  </Button>
+                        </HStack>
+                      </Button>
+                    </ContextMenu.Trigger>
+                  </ContextMenu>
                 );
               })
             )}

@@ -96,19 +96,21 @@ export default function HabitDetailsScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: habit.name }} />
+      <Stack.Screen
+        options={{ title: habit.name, headerBackButtonDisplayMode: "minimal" }}
+      />
       <Host matchContents useViewportSizeMeasurement style={{ flex: 1 }}>
         <List>
           <Section title="Streaks">
             <HStack>
-              <Text color="secondary">Current</Text>
+              <Text>Current</Text>
               <Spacer />
-              <Text>{`${streaks.current}`}</Text>
+              <Text color="secondary">{`${streaks.current}`}</Text>
             </HStack>
             <HStack>
-              <Text color="secondary">Best</Text>
+              <Text>Best</Text>
               <Spacer />
-              <Text>{`${streaks.best}`}</Text>
+              <Text color="secondary">{`${streaks.best}`}</Text>
             </HStack>
           </Section>
           <Section title="Actions">
