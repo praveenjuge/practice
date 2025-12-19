@@ -9,6 +9,7 @@
     "scheme": "practice",
     "ios": {
       "supportsTablet": false,
+      "icon": "./assets/app.icon",
       "bundleIdentifier": "com.praveenjuge.practice"
     },
     "plugins": [
