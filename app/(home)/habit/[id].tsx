@@ -1,20 +1,21 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo } from "react";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import {
-  Alert,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  Pressable,
-  PlatformColor,
-  Text,
-  View,
-} from "react-native";
+import { Alert, Platform } from "react-native";
 import {
   getStreaks,
   getTodayString,
   useHabits,
 } from "../../../components/habits-store";
+import {
+  Button,
+  Host,
+  HStack,
+  Image,
+  List,
+  Section,
+  Spacer,
+  Text,
+} from "@expo/ui/swift-ui";
 
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
@@ -24,41 +25,55 @@ export default function HabitDetailsScreen() {
     () => habits.find((item) => item.id === habitId),
     [habits, habitId]
   );
-  const [name, setName] = useState(habit?.name ?? "");
-
-  useEffect(() => {
-    if (habit) {
-      setName(habit.name);
-    }
-  }, [habit]);
 
   if (!habit) {
     return (
       <>
         <Stack.Screen options={{ title: "Habit" }} />
-        <ScrollView contentContainerStyle={styles.container}>
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Not found</Text>
-            <Text style={styles.subtle}>This habit no longer exists.</Text>
-            <Pressable onPress={() => router.back()} style={styles.button}>
-              <Text style={styles.buttonText}>Go back</Text>
-            </Pressable>
-          </View>
-        </ScrollView>
+        <Host matchContents useViewportSizeMeasurement style={{ flex: 1 }}>
+          <List>
+            <HStack>
+              <Text>Not found</Text>
+              <Spacer />
+              <Text color="secondary">This habit no longer exists</Text>
+            </HStack>
+          </List>
+        </Host>
       </>
     );
   }
 
   const today = getTodayString();
   const streaks = getStreaks(habit.checkins, today);
-  const isDirty = name.trim() !== habit.name;
-  const canSave = isDirty && name.trim().length > 0;
-
-  const handleSave = async () => {
-    if (!canSave) {
+  const handleRename = () => {
+    if (Platform.OS === "ios" && "prompt" in Alert) {
+      Alert.prompt(
+        "Rename habit",
+        "Update the habit name.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Save",
+            onPress: async (value?: string) => {
+              const trimmed = value?.trim();
+              if (!trimmed || trimmed === habit.name) {
+                return;
+              }
+              await renameHabit(habit.id, trimmed);
+            },
+          },
+        ],
+        "plain-text",
+        habit.name,
+        "Habit name"
+      );
       return;
     }
-    await renameHabit(habit.id, name);
+
+    Alert.alert(
+      "Rename habit",
+      "Renaming currently requires iOS because native prompt alerts are not available on Android."
+    );
   };
 
   const handleDelete = () => {
@@ -71,8 +86,8 @@ export default function HabitDetailsScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            await deleteHabit(habit.id);
             router.back();
+            await deleteHabit(habit.id);
           },
         },
       ]
@@ -82,113 +97,38 @@ export default function HabitDetailsScreen() {
   return (
     <>
       <Stack.Screen options={{ title: habit.name }} />
-      <ScrollView contentContainerStyle={styles.container}>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Streaks</Text>
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Current</Text>
-            <Text style={styles.rowValue}>{streaks.current}</Text>
-          </View>
-          <View style={styles.row}>
-            <Text style={styles.rowLabel}>Best</Text>
-            <Text style={styles.rowValue}>{streaks.best}</Text>
-          </View>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Name</Text>
-          <TextInput
-            value={name}
-            onChangeText={setName}
-            placeholder="Habit name"
-            placeholderTextColor={PlatformColor("tertiaryLabel")}
-            style={styles.input}
-            autoCapitalize="sentences"
-            autoCorrect
-            returnKeyType="done"
-            onSubmitEditing={handleSave}
-          />
-          <Pressable
-            onPress={handleSave}
-            disabled={!canSave}
-            style={[styles.button, !canSave ? styles.buttonDisabled : null]}
-          >
-            <Text style={styles.buttonText}>Save name</Text>
-          </Pressable>
-        </View>
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Danger zone</Text>
-          <Pressable onPress={handleDelete} style={styles.deleteButton}>
-            <Text style={styles.deleteText}>Delete habit</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+      <Host matchContents useViewportSizeMeasurement style={{ flex: 1 }}>
+        <List>
+          <Section title="Streaks">
+            <HStack>
+              <Text color="secondary">Current</Text>
+              <Spacer />
+              <Text>{`${streaks.current}`}</Text>
+            </HStack>
+            <HStack>
+              <Text color="secondary">Best</Text>
+              <Spacer />
+              <Text>{`${streaks.best}`}</Text>
+            </HStack>
+          </Section>
+          <Section title="Actions">
+            <Button onPress={handleRename}>
+              <HStack>
+                <Text color="primary">Rename habit</Text>
+                <Spacer />
+                <Image systemName="chevron.right" size={14} color="secondary" />
+              </HStack>
+            </Button>
+            <Button onPress={handleDelete}>
+              <HStack>
+                <Text color="primary">Delete habit</Text>
+                <Spacer />
+                <Image systemName="chevron.right" size={14} color="secondary" />
+              </HStack>
+            </Button>
+          </Section>
+        </List>
+      </Host>
     </>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    paddingHorizontal: 20,
-    paddingBottom: 32,
-    paddingTop: 16,
-    backgroundColor: PlatformColor("systemBackground"),
-  },
-  section: {
-    marginBottom: 20,
-  },
-  sectionTitle: {
-    fontSize: 12,
-    letterSpacing: 0.6,
-    textTransform: "uppercase",
-    color: PlatformColor("secondaryLabel"),
-    marginBottom: 10,
-  },
-  subtle: {
-    fontSize: 14,
-    marginBottom: 12,
-    color: PlatformColor("secondaryLabel"),
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 8,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: PlatformColor("separator"),
-  },
-  rowLabel: {
-    fontSize: 16,
-    color: PlatformColor("label"),
-  },
-  rowValue: {
-    fontSize: 16,
-    color: PlatformColor("label"),
-  },
-  input: {
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 10,
-    fontSize: 17,
-    backgroundColor: PlatformColor("secondarySystemBackground"),
-    color: PlatformColor("label"),
-  },
-  button: {
-    marginTop: 10,
-    alignItems: "center",
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: PlatformColor("tertiarySystemFill"),
-  },
-  buttonDisabled: {
-    opacity: 0.6,
-  },
-  buttonText: {
-    color: PlatformColor("label"),
-    fontWeight: "500",
-  },
-  deleteButton: {
-    paddingVertical: 12,
-  },
-  deleteText: {
-    color: PlatformColor("systemRed"),
-  },
-});
