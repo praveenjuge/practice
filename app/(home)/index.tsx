@@ -18,8 +18,14 @@ import {
 } from "@expo/ui/swift-ui";
 
 export default function HomeScreen() {
-  const { habits, isLoaded, isCloudAvailable, error, checkInToday, addHabit } =
-    useHabits();
+  const {
+    habits,
+    isLoaded,
+    isCloudAvailable,
+    error,
+    toggleCheckInToday,
+    addHabit,
+  } = useHabits();
   const today = getTodayString();
 
   const handleAddOpen = () => {
@@ -64,8 +70,11 @@ export default function HomeScreen() {
         <List>
           {!isCloudAvailable ? (
             <Section title="Sync">
-              <Text>iCloud is unavailable on this device.</Text>
-              {error ? <Text color="red">{error}</Text> : null}
+              {error ? (
+                <Text color="red">{error}</Text>
+              ) : (
+                <Text>iCloud is unavailable on this device.</Text>
+              )}
             </Section>
           ) : null}
           <Section title="Your Habits">
@@ -83,7 +92,7 @@ export default function HomeScreen() {
                       <HStack spacing={10}>
                         <Button
                           onPress={() => {
-                            void checkInToday(habit.id);
+                            void toggleCheckInToday(habit.id);
                           }}
                         >
                           <Image

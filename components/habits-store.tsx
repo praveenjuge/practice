@@ -38,7 +38,7 @@ type HabitsContextValue = {
   isCloudAvailable: boolean;
   error: string | null;
   addHabit: (name: string) => Promise<void>;
-  checkInToday: (id: string) => Promise<void>;
+  toggleCheckInToday: (id: string) => Promise<void>;
   renameHabit: (id: string, name: string) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   reload: () => Promise<void>;
@@ -352,19 +352,19 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     [habits, saveHabits]
   );
 
-  const checkInToday = useCallback(
+  const toggleCheckInToday = useCallback(
     async (id: string) => {
       const today = getTodayString();
       const nextHabits = habits.map((habit) => {
         if (habit.id !== id) {
           return habit;
         }
-        if (habit.checkins.includes(today)) {
-          return habit;
-        }
+        const hasToday = habit.checkins.includes(today);
         return {
           ...habit,
-          checkins: normalizeDateArray([...habit.checkins, today]),
+          checkins: hasToday
+            ? habit.checkins.filter((checkin) => checkin !== today)
+            : normalizeDateArray([...habit.checkins, today]),
         };
       });
       await saveHabits(nextHabits);
@@ -444,7 +444,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       isCloudAvailable,
       error,
       addHabit,
-      checkInToday,
+      toggleCheckInToday,
       renameHabit,
       deleteHabit,
       reload,
@@ -455,7 +455,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       isCloudAvailable,
       error,
       addHabit,
-      checkInToday,
+      toggleCheckInToday,
       renameHabit,
       deleteHabit,
       reload,
