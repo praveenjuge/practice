@@ -10,14 +10,17 @@
     "ios": {
       "supportsTablet": false,
       "icon": "./assets/app.icon",
-      "bundleIdentifier": "com.praveenjuge.practice"
+      "bundleIdentifier": "com.praveenjuge.practice",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "plugins": [
       "expo-router",
       [
         "react-native-cloud-storage",
         {
-          "iCloudContainerEnvironment": "Development",
+          "iCloudContainerEnvironment": "Production",
           "iCloudContainerIdentifier": "iCloud.com.praveenjuge.practice"
         }
       ]
