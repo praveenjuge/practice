@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Alert, Platform } from "react-native";
+import { Alert, Platform, PlatformColor } from "react-native";
 import {
   getStreaks,
   getTodayString,
@@ -19,7 +19,7 @@ import {
 
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const { habits, renameHabit, deleteHabit } = useHabits();
+  const { habits, renameHabit, deleteHabit, toggleCheckInToday } = useHabits();
   const habitId = Array.isArray(id) ? id[0] : id;
   const habit = useMemo(
     () => habits.find((item) => item.id === habitId),
@@ -45,6 +45,10 @@ export default function HabitDetailsScreen() {
 
   const today = getTodayString();
   const streaks = getStreaks(habit.checkins, today);
+  const isCompletedToday = habit.checkins.includes(today);
+  const totalCheckins = habit.checkins.length;
+  const lastCheckin =
+    totalCheckins > 0 ? habit.checkins.slice().sort().pop() : undefined;
   const handleRename = () => {
     if (Platform.OS === "ios" && "prompt" in Alert) {
       Alert.prompt(
@@ -108,12 +112,32 @@ export default function HabitDetailsScreen() {
               <Text color="secondary">{`${streaks.current}`}</Text>
             </HStack>
             <HStack>
-              <Text>Best</Text>
+              <Text>Highest</Text>
               <Spacer />
               <Text color="secondary">{`${streaks.best}`}</Text>
             </HStack>
           </Section>
+          <Section title="Progress">
+            <HStack>
+              <Text>Total check-ins</Text>
+              <Spacer />
+              <Text color="secondary">{`${totalCheckins}`}</Text>
+            </HStack>
+            <HStack>
+              <Text>Last check-in</Text>
+              <Spacer />
+              <Text color="secondary">{lastCheckin ?? "Never"}</Text>
+            </HStack>
+          </Section>
           <Section title="Actions">
+            <Button onPress={() => toggleCheckInToday(habit.id)}>
+              <HStack>
+                <Text color={PlatformColor("systemGreen") as unknown as string}>
+                  {isCompletedToday ? "Mark as Incomplete" : "Mark as Complete"}
+                </Text>
+                <Spacer />
+              </HStack>
+            </Button>
             <Button onPress={handleRename}>
               <HStack>
                 <Text color="primary">Rename habit</Text>
