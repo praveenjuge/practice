@@ -1,6 +1,6 @@
 import React from "react";
 import { Stack, router } from "expo-router";
-import { Platform, Alert, Button, PlatformColor } from "react-native";
+import { Platform, Alert, PlatformColor } from "react-native";
 import {
   useHabits,
   getTodayString,
@@ -14,7 +14,7 @@ import {
   Spacer,
   Text,
   Image,
-  Button as SFButton,
+  Button,
 } from "@expo/ui/swift-ui";
 
 export default function HomeScreen() {
@@ -58,10 +58,6 @@ export default function HomeScreen() {
       <Stack.Screen
         options={{
           title: "Practice",
-          headerLargeTitleEnabled: true,
-          headerRight: () => (
-            <Button color="primary" title="Add" onPress={handleAddOpen} />
-          ),
         }}
       />
       <Host matchContents useViewportSizeMeasurement style={{ flex: 1 }}>
@@ -75,19 +71,17 @@ export default function HomeScreen() {
           <Section title="Your Habits">
             {!isLoaded ? (
               <Text>Loading your habits...</Text>
-            ) : habits.length === 0 ? (
-              <Text>No habits yet. Start one.</Text>
             ) : (
               habits.map((habit) => {
                 const checkedToday = hasCheckInToday(habit.checkins, today);
                 return (
-                  <SFButton
+                  <Button
                     key={habit.id}
                     onPress={() => router.push(`/habit/${habit.id}`)}
                   >
                     <HStack>
                       <HStack spacing={10}>
-                        <SFButton
+                        <Button
                           onPress={() => {
                             void checkInToday(habit.id);
                           }}
@@ -105,7 +99,7 @@ export default function HomeScreen() {
                                 : "secondary"
                             }
                           />
-                        </SFButton>
+                        </Button>
                         <Text color="primary">{habit.name}</Text>
                       </HStack>
                       <Spacer />
@@ -115,10 +109,22 @@ export default function HomeScreen() {
                         color="secondary"
                       />
                     </HStack>
-                  </SFButton>
+                  </Button>
                 );
               })
             )}
+            <Button onPress={handleAddOpen}>
+              <HStack spacing={10}>
+                <Image
+                  systemName="plus.circle.fill"
+                  color={PlatformColor("systemGreen") as unknown as string}
+                  size={22}
+                />
+                <Text color={PlatformColor("systemGreen") as unknown as string}>
+                  Add Habit
+                </Text>
+              </HStack>
+            </Button>
           </Section>
         </List>
       </Host>
