@@ -15,6 +15,11 @@ import {
   CloudStorageScope,
   useIsCloudAvailable,
 } from "react-native-cloud-storage";
+import {
+  type HabitCategoryId,
+  isValidHabitCategoryId,
+  resolveHabitCategoryId,
+} from "./habit-categories";
 
 if (Platform.OS === "ios") {
   CloudStorage.setProvider(CloudStorageProvider.ICloud);
@@ -23,6 +28,7 @@ if (Platform.OS === "ios") {
 export type Habit = {
   id: string;
   name: string;
+  categoryId: HabitCategoryId;
   createdAt: string;
   checkins: string[];
 };
@@ -37,9 +43,15 @@ type HabitsContextValue = {
   isLoaded: boolean;
   isCloudAvailable: boolean;
   error: string | null;
-  addHabit: (name: string) => Promise<void>;
+  addHabit: (input: {
+    name: string;
+    categoryId?: HabitCategoryId;
+  }) => Promise<void>;
   toggleCheckInToday: (id: string) => Promise<void>;
-  renameHabit: (id: string, name: string) => Promise<void>;
+  updateHabit: (
+    id: string,
+    input: { name: string; categoryId: HabitCategoryId },
+  ) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   reload: () => Promise<void>;
 };
@@ -48,16 +60,15 @@ const HabitsContext = createContext<HabitsContextValue | null>(null);
 
 const HABITS_DIR = "/practice";
 const HABITS_FILE = "/practice/habits.json";
-const FILE_VERSION = 1;
+const FILE_VERSION = 2;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const STORAGE_SCOPE = CloudStorageScope.AppData;
+export const MAX_HABIT_NAME_LENGTH = 120;
 
 const pad2 = (value: number) => String(value).padStart(2, "0");
 
 export const formatDate = (date: Date) =>
-  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(
-    date.getDate()
-  )}`;
+  `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
 export const getTodayString = (date = new Date()) => formatDate(date);
 
@@ -84,6 +95,35 @@ const normalizeDateArray = (dates: string[]) => {
   return Array.from(unique);
 };
 
+const normalizeHabitName = (name: unknown) => {
+  if (typeof name !== "string") {
+    throw new Error("Habit name is required.");
+  }
+  const trimmed = name.trim();
+  if (!trimmed) {
+    throw new Error("Habit name is required.");
+  }
+  if (trimmed.length > MAX_HABIT_NAME_LENGTH) {
+    throw new Error(
+      `Habit name must be ${MAX_HABIT_NAME_LENGTH} characters or fewer.`,
+    );
+  }
+  return trimmed;
+};
+
+const normalizeHabitCategoryId = (categoryId?: unknown) => {
+  if (!categoryId) {
+    return resolveHabitCategoryId();
+  }
+  if (typeof categoryId !== "string") {
+    throw new Error("Invalid habit category.");
+  }
+  if (!isValidHabitCategoryId(categoryId)) {
+    throw new Error("Invalid habit category.");
+  }
+  return categoryId;
+};
+
 const streakFrom = (start: string, set: Set<string>) => {
   let count = 0;
   let cursor = start;
@@ -99,7 +139,7 @@ export const hasCheckInToday = (checkins: string[], today = getTodayString()) =>
 
 export const getStreaks = (
   checkins: string[],
-  today = getTodayString()
+  today = getTodayString(),
 ): HabitStreaks => {
   const normalized = normalizeDateArray(checkins);
   if (normalized.length === 0 || !isValidDateString(today)) {
@@ -159,14 +199,17 @@ const sanitizeHabits = (raw: unknown) => {
     const checkins = Array.isArray(record.checkins)
       ? normalizeDateArray(
           record.checkins.filter(
-            (value): value is string => typeof value === "string"
-          )
+            (value): value is string => typeof value === "string",
+          ),
         )
       : [];
 
     sanitized.push({
       id: record.id,
       name,
+      categoryId: resolveHabitCategoryId(
+        typeof record.categoryId === "string" ? record.categoryId : null,
+      ),
       createdAt,
       checkins,
     });
@@ -212,10 +255,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     const ensureStoragePath = async () => {
-      const dirExists = await CloudStorage.exists(
-        HABITS_DIR,
-        STORAGE_SCOPE
-      );
+      const dirExists = await CloudStorage.exists(HABITS_DIR, STORAGE_SCOPE);
       if (!dirExists) {
         await CloudStorage.mkdir(HABITS_DIR, STORAGE_SCOPE);
       }
@@ -225,16 +265,13 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       await CloudStorage.writeFile(
         HABITS_FILE,
         JSON.stringify({ version: FILE_VERSION, habits: [] }),
-        STORAGE_SCOPE
+        STORAGE_SCOPE,
       );
     };
 
     const readFromCloud = async () => {
       await ensureStoragePath();
-      const fileExists = await CloudStorage.exists(
-        HABITS_FILE,
-        STORAGE_SCOPE
-      );
+      const fileExists = await CloudStorage.exists(HABITS_FILE, STORAGE_SCOPE);
       if (!fileExists) {
         await writeEmptyFile();
         return [];
@@ -245,10 +282,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         // Ignore sync issues; readFile will still try to access the file.
       }
       try {
-        const content = await CloudStorage.readFile(
-          HABITS_FILE,
-          STORAGE_SCOPE
-        );
+        const content = await CloudStorage.readFile(HABITS_FILE, STORAGE_SCOPE);
         return parseHabitsContent(content);
       } catch (readError) {
         if (isNotFoundError(readError)) {
@@ -304,10 +338,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         return;
       }
       try {
-        const dirExists = await CloudStorage.exists(
-          HABITS_DIR,
-          STORAGE_SCOPE
-        );
+        const dirExists = await CloudStorage.exists(HABITS_DIR, STORAGE_SCOPE);
         if (!dirExists) {
           await CloudStorage.mkdir(HABITS_DIR, STORAGE_SCOPE);
         }
@@ -328,37 +359,43 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         setError("Unable to save changes to iCloud.");
       }
     },
-    [isCloudAvailable]
+    [isCloudAvailable],
   );
 
   const addHabit = useCallback(
-    async (name: string) => {
-      const trimmed = name.trim();
-      if (!trimmed) {
-        return;
+    async (input: { name: string; categoryId?: HabitCategoryId }) => {
+      if (!input || typeof input !== "object") {
+        throw new Error("Habit details are required.");
       }
+      const trimmed = normalizeHabitName(input.name);
       const today = getTodayString();
       const nextHabits = [
         ...habits,
         {
           id: createId(),
           name: trimmed,
+          categoryId: normalizeHabitCategoryId(input.categoryId),
           createdAt: today,
           checkins: [],
         },
       ];
       await saveHabits(nextHabits);
     },
-    [habits, saveHabits]
+    [habits, saveHabits],
   );
 
   const toggleCheckInToday = useCallback(
     async (id: string) => {
+      if (!id) {
+        throw new Error("Habit ID is required.");
+      }
       const today = getTodayString();
+      let didUpdate = false;
       const nextHabits = habits.map((habit) => {
         if (habit.id !== id) {
           return habit;
         }
+        didUpdate = true;
         const hasToday = habit.checkins.includes(today);
         return {
           ...habit,
@@ -367,31 +404,55 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
             : normalizeDateArray([...habit.checkins, today]),
         };
       });
+      if (!didUpdate) {
+        throw new Error("Habit not found.");
+      }
       await saveHabits(nextHabits);
     },
-    [habits, saveHabits]
+    [habits, saveHabits],
   );
 
-  const renameHabit = useCallback(
-    async (id: string, name: string) => {
-      const trimmed = name.trim();
-      if (!trimmed) {
-        return;
+  const updateHabit = useCallback(
+    async (
+      id: string,
+      input: { name: string; categoryId: HabitCategoryId },
+    ) => {
+      if (!id) {
+        throw new Error("Habit ID is required.");
       }
-      const nextHabits = habits.map((habit) =>
-        habit.id === id ? { ...habit, name: trimmed } : habit
-      );
+      if (!input || typeof input !== "object") {
+        throw new Error("Habit details are required.");
+      }
+      const trimmed = normalizeHabitName(input.name);
+      const categoryId = normalizeHabitCategoryId(input.categoryId);
+      let didUpdate = false;
+      const nextHabits = habits.map((habit) => {
+        if (habit.id !== id) {
+          return habit;
+        }
+        didUpdate = true;
+        return { ...habit, name: trimmed, categoryId };
+      });
+      if (!didUpdate) {
+        throw new Error("Habit not found.");
+      }
       await saveHabits(nextHabits);
     },
-    [habits, saveHabits]
+    [habits, saveHabits],
   );
 
   const deleteHabit = useCallback(
     async (id: string) => {
+      if (!id) {
+        throw new Error("Habit ID is required.");
+      }
       const nextHabits = habits.filter((habit) => habit.id !== id);
+      if (nextHabits.length === habits.length) {
+        throw new Error("Habit not found.");
+      }
       await saveHabits(nextHabits);
     },
-    [habits, saveHabits]
+    [habits, saveHabits],
   );
 
   const reload = useCallback(async () => {
@@ -399,22 +460,16 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     try {
-      const dirExists = await CloudStorage.exists(
-        HABITS_DIR,
-        STORAGE_SCOPE
-      );
+      const dirExists = await CloudStorage.exists(HABITS_DIR, STORAGE_SCOPE);
       if (!dirExists) {
         await CloudStorage.mkdir(HABITS_DIR, STORAGE_SCOPE);
       }
-      const fileExists = await CloudStorage.exists(
-        HABITS_FILE,
-        STORAGE_SCOPE
-      );
+      const fileExists = await CloudStorage.exists(HABITS_FILE, STORAGE_SCOPE);
       if (!fileExists) {
         await CloudStorage.writeFile(
           HABITS_FILE,
           JSON.stringify({ version: FILE_VERSION, habits: [] }),
-          STORAGE_SCOPE
+          STORAGE_SCOPE,
         );
         setHabits([]);
         setError(null);
@@ -425,10 +480,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       } catch (syncError) {
         // Ignore sync issues and try reading anyway.
       }
-      const content = await CloudStorage.readFile(
-        HABITS_FILE,
-        STORAGE_SCOPE
-      );
+      const content = await CloudStorage.readFile(HABITS_FILE, STORAGE_SCOPE);
       const nextHabits = parseHabitsContent(content);
       setHabits(nextHabits);
       setError(null);
@@ -445,7 +497,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       error,
       addHabit,
       toggleCheckInToday,
-      renameHabit,
+      updateHabit,
       deleteHabit,
       reload,
     }),
@@ -456,10 +508,10 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       error,
       addHabit,
       toggleCheckInToday,
-      renameHabit,
+      updateHabit,
       deleteHabit,
       reload,
-    ]
+    ],
   );
 
   return (

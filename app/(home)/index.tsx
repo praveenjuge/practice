@@ -1,12 +1,12 @@
 import React from "react";
 import { Stack, router } from "expo-router";
-import { Platform, Alert, PlatformColor } from "react-native";
+import { Alert } from "react-native";
+import { APP_ACCENT_COLOR } from "../../components/app-colors";
 import {
   useHabits,
   getTodayString,
   hasCheckInToday,
 } from "../../components/habits-store";
-import { createHabitContextHandlers } from "../../components/habit-context-actions";
 import {
   Host,
   HStack,
@@ -26,47 +26,43 @@ export default function HomeScreen() {
     isCloudAvailable,
     error,
     toggleCheckInToday,
-    addHabit,
-    renameHabit,
     deleteHabit,
   } = useHabits();
   const today = getTodayString();
-  const { handleToggle, handleEdit, handleDelete } = createHabitContextHandlers(
-    {
-      toggleCheckInToday,
-      renameHabit,
-      deleteHabit,
-    }
-  );
 
   const handleAddOpen = () => {
-    if (Platform.OS === "ios" && "prompt" in Alert) {
-      Alert.prompt(
-        "New habit",
-        "Give it a name to start tracking.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Add",
-            onPress: async (value?: string) => {
-              const trimmed = value?.trim();
-              if (!trimmed) {
-                return;
-              }
-              await addHabit(trimmed);
-            },
-          },
-        ],
-        "plain-text",
-        "",
-        "Habit name"
-      );
-      return;
-    }
+    router.push("/habit/new");
+  };
 
+  const showActionError = (title: string, error: unknown) => {
     Alert.alert(
-      "New habit",
-      "Adding a habit currently requires iOS because native prompt alerts are not available on Android."
+      title,
+      error instanceof Error ? error.message : "Please try again."
+    );
+  };
+
+  const handleToggle = (habitId: string) => {
+    void toggleCheckInToday(habitId).catch((error) => {
+      showActionError("Unable to update habit", error);
+    });
+  };
+
+  const handleDelete = (habitId: string, habitName: string) => {
+    Alert.alert(
+      "Delete habit?",
+      `This will remove "${habitName}" and all of its check-ins.`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            void deleteHabit(habitId).catch((error) => {
+              showActionError("Unable to delete habit", error);
+            });
+          },
+        },
+      ]
     );
   };
 
@@ -98,23 +94,18 @@ export default function HomeScreen() {
                   <ContextMenu key={habit.id} activationMethod="longPress">
                     <ContextMenu.Items>
                       <Button
+                        color={APP_ACCENT_COLOR}
                         systemImage={
                           checkedToday ? "circle" : "checkmark.circle"
                         }
-                        onPress={() => handleToggle(habit)}
+                        onPress={() => handleToggle(habit.id)}
                       >
                         {checkedToday ? "Mark Incomplete" : "Mark Complete"}
                       </Button>
                       <Button
-                        systemImage="pencil"
-                        onPress={() => handleEdit(habit)}
-                      >
-                        Edit
-                      </Button>
-                      <Button
                         role="destructive"
                         systemImage="trash"
-                        onPress={() => handleDelete(habit)}
+                        onPress={() => handleDelete(habit.id, habit.name)}
                       >
                         Delete
                       </Button>
@@ -123,7 +114,7 @@ export default function HomeScreen() {
                       <Button onPress={() => router.push(`/habit/${habit.id}`)}>
                         <HStack>
                           <HStack spacing={10}>
-                            <Button onPress={() => handleToggle(habit)}>
+                            <Button onPress={() => handleToggle(habit.id)}>
                               <Image
                                 size={22}
                                 systemName={
@@ -132,11 +123,7 @@ export default function HomeScreen() {
                                     : "circle"
                                 }
                                 color={
-                                  checkedToday
-                                    ? (PlatformColor(
-                                        "systemGreen"
-                                      ) as unknown as string)
-                                    : "secondary"
+                                  checkedToday ? APP_ACCENT_COLOR : "secondary"
                                 }
                               />
                             </Button>
@@ -159,12 +146,10 @@ export default function HomeScreen() {
               <HStack spacing={10}>
                 <Image
                   systemName="plus.circle.fill"
-                  color={PlatformColor("systemGreen") as unknown as string}
+                  color={APP_ACCENT_COLOR}
                   size={22}
                 />
-                <Text color={PlatformColor("systemGreen") as unknown as string}>
-                  Add Habit
-                </Text>
+                <Text color={APP_ACCENT_COLOR}>Add Habit</Text>
               </HStack>
             </Button>
           </Section>

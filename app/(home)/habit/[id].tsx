@@ -1,6 +1,7 @@
 import React, { useMemo } from "react";
 import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Alert, Platform, PlatformColor } from "react-native";
+import { Alert } from "react-native";
+import { APP_ACCENT_COLOR } from "../../../components/app-colors";
 import {
   getStreaks,
   getTodayString,
@@ -19,7 +20,7 @@ import {
 
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const { habits, renameHabit, deleteHabit, toggleCheckInToday } = useHabits();
+  const { habits, deleteHabit, toggleCheckInToday } = useHabits();
   const habitId = Array.isArray(id) ? id[0] : id;
   const habit = useMemo(
     () => habits.find((item) => item.id === habitId),
@@ -49,35 +50,21 @@ export default function HabitDetailsScreen() {
   const totalCheckins = habit.checkins.length;
   const lastCheckin =
     totalCheckins > 0 ? habit.checkins.slice().sort().pop() : undefined;
-  const handleRename = () => {
-    if (Platform.OS === "ios" && "prompt" in Alert) {
-      Alert.prompt(
-        "Rename habit",
-        "Update the habit name.",
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Save",
-            onPress: async (value?: string) => {
-              const trimmed = value?.trim();
-              if (!trimmed || trimmed === habit.name) {
-                return;
-              }
-              await renameHabit(habit.id, trimmed);
-            },
-          },
-        ],
-        "plain-text",
-        habit.name,
-        "Habit name"
-      );
-      return;
-    }
-
+  const showActionError = (title: string, error: unknown) => {
     Alert.alert(
-      "Rename habit",
-      "Renaming currently requires iOS because native prompt alerts are not available on Android."
+      title,
+      error instanceof Error ? error.message : "Please try again."
     );
+  };
+
+  const handleEdit = () => {
+    router.push(`/habit/edit/${habit.id}`);
+  };
+
+  const handleToggle = () => {
+    void toggleCheckInToday(habit.id).catch((error) => {
+      showActionError("Unable to update habit", error);
+    });
   };
 
   const handleDelete = () => {
@@ -90,8 +77,12 @@ export default function HabitDetailsScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
-            router.back();
-            await deleteHabit(habit.id);
+            try {
+              await deleteHabit(habit.id);
+              router.back();
+            } catch (error) {
+              showActionError("Unable to delete habit", error);
+            }
           },
         },
       ]
@@ -130,17 +121,17 @@ export default function HabitDetailsScreen() {
             </HStack>
           </Section>
           <Section title="Actions">
-            <Button onPress={() => toggleCheckInToday(habit.id)}>
+            <Button onPress={handleToggle} color={APP_ACCENT_COLOR}>
               <HStack>
-                <Text color={PlatformColor("systemGreen") as unknown as string}>
+                <Text color={APP_ACCENT_COLOR}>
                   {isCompletedToday ? "Mark as Incomplete" : "Mark as Complete"}
                 </Text>
                 <Spacer />
               </HStack>
             </Button>
-            <Button onPress={handleRename}>
+            <Button onPress={handleEdit} color={APP_ACCENT_COLOR}>
               <HStack>
-                <Text color="primary">Rename habit</Text>
+                <Text color={APP_ACCENT_COLOR}>Edit habit</Text>
                 <Spacer />
                 <Image systemName="chevron.right" size={14} color="secondary" />
               </HStack>
