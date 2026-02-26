@@ -8,25 +8,28 @@
     },
     "info": {
       "en-US": {
-        "description": "Practice is a beautifully simple habit tracker designed to help you build consistency and stay motivated with streaks.\n\nTrack daily habits, check in with a tap, and view streaks and progress inside each habit’s detail screen.\n\nKEY FEATURES\n- Simple daily check-ins\n- Streaks (current and best) and progress details per habit\n- iCloud Sync\n- Native iOS design\n- Privacy-first\n\nHOW IT WORKS\n1. Add a habit you want to build\n2. Check it off each day you complete it\n3. Open a habit to see its streaks and progress\n4. Stay consistent and build momentum\n\nPractice is perfect for:\n- Daily exercise\n- Reading\n- Meditation\n- Learning a language\n- Any habit you want to make stick\n\nThe key to lasting habits is consistency. Practice gives you just enough tracking to stay accountable without becoming a chore.",
+        "description": "Practice is a beautifully simple habit tracker designed to help you build consistency with daily check-ins and streaks.\n\nCreate habits in seconds, organize them with categories, and edit them anytime as your routines evolve.\n\nKEY FEATURES\n- Simple daily check-ins\n- Streaks (current and highest) and progress details per habit\n- Habit categories with searchable picker\n- Edit habit name and category anytime\n- Search habits on the home screen\n- Helpful loading and empty states\n- iCloud Sync\n- Native iOS design\n- Privacy-first\n\nHOW IT WORKS\n1. Add a habit you want to build\n2. Choose a category that matches your goal\n3. Check it off each day you complete it\n4. Open the habit to review streaks and progress\n5. Update or refine habits as your routine changes\n\nPractice is perfect for:\n- Daily exercise\n- Reading\n- Meditation\n- Learning a language\n- Any habit you want to make stick\n\nThe key to lasting habits is consistency. Practice gives you just enough tracking to stay accountable without becoming a chore.",
         "keywords": [
           "habit",
           "tracker",
           "streak",
           "daily",
           "routine",
+          "categories",
           "goals",
           "productivity",
+          "organization",
+          "focus",
           "check-in",
           "wellness",
           "icloud",
           "simple",
           "motivation"
         ],
-        "promoText": "Start each day with intention. Practice helps you build lasting habits through simple daily check-ins and streak tracking. Synced across all your iOS devices via iCloud.",
+        "promoText": "Build better routines with categorized habits, quick daily check-ins, and streak tracking. Create, edit, and search habits in a clean native iOS app synced through iCloud.",
         "supportUrl": "https://praveenjuge.com/practice/privacy/",
         "title": "Practice: Habit Tracker",
-        "subtitle": "Build streaks, Stay consistent",
+        "subtitle": "Build Streaks Daily",
         "privacyPolicyUrl": "https://praveenjuge.com/practice/privacy/"
       }
     },
@@ -57,7 +60,7 @@
       "email": "hello@praveenjuge.com",
       "phone": "+10000000000",
       "demoRequired": false,
-      "notes": "This is a simple habit tracking app that allows users to:\n1. Create habits they want to track\n2. Check in daily to mark habits as complete\n3. View streaks and progress inside each habit’s detail screen\n\nTESTING THE APP\n1. On the home screen, tap “Add Habit” to create a new habit\n2. Enter a name (e.g., “Exercise”)\n3. Tap the circle next to the habit to mark it complete for today\n4. Tap the habit row to open its detail screen — you will see:\n   - Streaks (Current and Best)\n   - Progress (Total check-ins, Last check-in)\n5. Long-press a habit for quick actions (edit, delete, toggle completion)\n\niCloud Sync:\nIf iCloud is enabled, data is stored in iCloud. If iCloud is unavailable, the app shows a message and stores data locally.\n\nNo sign-in required.\n"
+      "notes": "This is a habit tracking app that allows users to:\n1. Create habits with a category\n2. Edit habit name and category later\n3. Check in daily to mark habits as complete\n4. View streaks and progress inside each habit’s detail screen\n5. Search habits from the home screen\n\nTESTING THE APP\n1. On the home screen, tap the + button to create a new habit\n2. Enter a name (e.g., “Exercise”)\n3. Tap Category to open the category picker and select one\n4. Tap the checkmark in the header to save\n5. Tap the circle next to a habit to mark it complete for today\n6. Tap the habit row to open details — you will see:\n   - Streaks (Current and Highest)\n   - Progress (Total check-ins, Last check-in)\n7. Tap “Edit habit” from the detail screen to update name/category\n8. Use pull-to-refresh on the home list\n9. Use the home search bar to filter habits\n10. Long-press a habit for quick actions (mark complete/incomplete, delete)\n\nEmpty states:\n- When there are no habits, the app shows a “No Habits Yet” message.\n- If search has no matches, the app shows a “No Matching Habits” message.\n\niCloud Sync:\nIf iCloud is enabled, data is stored in iCloud. If iCloud is unavailable, the app shows a message and stores data locally.\n\nNo sign-in required.\n"
     }
   }
 }
