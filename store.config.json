@@ -1,7 +1,7 @@
 {
   "configVersion": 0,
   "apple": {
-    "version": "1.0",
+    "version": "1.0.1",
     "copyright": "Praveen Juge",
     "release": {
       "automaticRelease": true
@@ -15,18 +15,14 @@
           "streak",
           "daily",
           "routine",
-          "categories",
           "goals",
-          "productivity",
-          "organization",
-          "focus",
-          "check-in",
+          "checkin",
           "wellness",
           "icloud",
-          "simple",
+          "focus",
           "motivation"
         ],
-        "promoText": "Build better routines with categorized habits, quick daily check-ins, and streak tracking. Create, edit, and search habits in a clean native iOS app synced through iCloud.",
+        "promoText": "Build better routines with categorized habits, quick daily check-ins, and streak tracking. Create, edit, and search habits in a native iOS app synced through iCloud.",
         "supportUrl": "https://praveenjuge.com/practice/privacy/",
         "title": "Practice: Habit Tracker",
         "subtitle": "Build Streaks Daily",
