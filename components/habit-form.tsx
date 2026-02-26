@@ -1,6 +1,7 @@
 import {
   BottomSheet,
   Button,
+  Group,
   Host,
   HStack,
   Image,
@@ -13,11 +14,11 @@ import {
 import {
   buttonStyle,
   foregroundStyle,
-  tint,
+  presentationDetents,
+  presentationDragIndicator,
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
-import { APP_ACCENT_COLOR } from "./app-colors";
 import {
   getHabitCategory,
   HABIT_CATEGORIES,
@@ -158,47 +159,54 @@ export function HabitForm({
         isPresented={isCategorySheetOpen}
         onIsPresentedChange={setIsCategorySheetOpen}
       >
-        <List>
-          <Section title="Search">
-            <TextField
-              defaultValue=""
-              key={`category-search-${searchInputKey}`}
-              onChangeText={setSearchQuery}
-              placeholder="Search categories"
-            />
-          </Section>
-          {groupedCategories.length === 0 ? (
-            <Section title="Results">
-              <Text>No categories match your search.</Text>
+        <Group
+          modifiers={[
+            presentationDetents([{ fraction: 0.5 }, "large"]),
+            presentationDragIndicator("visible"),
+          ]}
+        >
+          <List>
+            <Section title="Select Category">
+              <TextField
+                defaultValue=""
+                key={`category-search-${searchInputKey}`}
+                onChangeText={setSearchQuery}
+                placeholder="Search categories"
+              />
             </Section>
-          ) : (
-            groupedCategories.map((section) => (
-              <Section key={section.group} title={section.group}>
-                {section.categories.map((category) => {
-                  const isSelected = category.id === selectedCategoryId;
-                  return (
-                    <Button
-                      key={category.id}
-                      modifiers={[tint(APP_ACCENT_COLOR)]}
-                      onPress={() => {
-                        setSelectedCategoryId(category.id);
-                        setIsCategorySheetOpen(false);
-                      }}
-                    >
-                      <HStack>
-                        <Text>{category.label}</Text>
-                        <Spacer />
-                        {isSelected ? (
-                          <Image size={16} systemName="checkmark" />
-                        ) : null}
-                      </HStack>
-                    </Button>
-                  );
-                })}
+            {groupedCategories.length === 0 ? (
+              <Section title="Results">
+                <Text>No categories match your search.</Text>
               </Section>
-            ))
-          )}
-        </List>
+            ) : (
+              groupedCategories.map((section) => (
+                <Section key={section.group} title={section.group}>
+                  {section.categories.map((category) => {
+                    const isSelected = category.id === selectedCategoryId;
+                    return (
+                      <Button
+                        key={category.id}
+                        modifiers={[buttonStyle("plain")]}
+                        onPress={() => {
+                          setSelectedCategoryId(category.id);
+                          setIsCategorySheetOpen(false);
+                        }}
+                      >
+                        <HStack>
+                          <Text>{category.label}</Text>
+                          <Spacer />
+                          {isSelected ? (
+                            <Image size={16} systemName="checkmark" />
+                          ) : null}
+                        </HStack>
+                      </Button>
+                    );
+                  })}
+                </Section>
+              ))
+            )}
+          </List>
+        </Group>
       </BottomSheet>
     </Host>
   );

@@ -2,7 +2,6 @@ import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable } from "react-native";
-import { APP_ACCENT_COLOR } from "../../../components/app-colors";
 import { HabitForm, type HabitFormInput } from "../../../components/habit-form";
 import { useHabits } from "../../../components/habits-store";
 
@@ -45,7 +44,7 @@ export default function NewHabitScreen() {
               onPress={handleHeaderSubmit}
             >
               {isSaving ? (
-                <ActivityIndicator color={APP_ACCENT_COLOR} size="small" />
+                <ActivityIndicator size="small" />
               ) : (
                 <SymbolView name="checkmark" />
               )}

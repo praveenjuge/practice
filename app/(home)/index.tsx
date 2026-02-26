@@ -125,7 +125,6 @@ export default function HomeScreen() {
                         label={
                           checkedToday ? "Mark Incomplete" : "Mark Complete"
                         }
-                        modifiers={[tint(APP_ACCENT_COLOR)]}
                         onPress={() => handleToggle(habit.id)}
                         systemImage={
                           checkedToday ? "circle" : "checkmark.circle"

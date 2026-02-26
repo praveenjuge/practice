@@ -4,7 +4,6 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useState } from "react";
 import { ActivityIndicator, Pressable } from "react-native";
-import { APP_ACCENT_COLOR } from "../../../../components/app-colors";
 import {
   HabitForm,
   type HabitFormInput,
@@ -85,7 +84,7 @@ export default function EditHabitScreen() {
               onPress={handleHeaderSubmit}
             >
               {isSaving ? (
-                <ActivityIndicator color={APP_ACCENT_COLOR} size="small" />
+                <ActivityIndicator size="small" />
               ) : (
                 <SymbolView name="checkmark" />
               )}
