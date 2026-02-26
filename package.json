@@ -9,6 +9,8 @@
     "check": "ultracite check",
     "fix": "ultracite fix",
     "ios": "expo run:ios",
+    "metadata:pull": "eas metadata:pull",
+    "metadata:push": "eas metadata:push",
     "prepare": "husky",
     "start": "expo start"
   },
