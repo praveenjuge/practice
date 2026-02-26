@@ -1,12 +1,16 @@
 {
   "name": "practice",
+  "version": "1.0.1",
   "main": "expo-router/entry",
   "scripts": {
-    "ios": "expo run:ios",
-    "start": "expo start",
     "android": "expo run:android",
     "build:local": "eas build --platform ios --local",
-    "build:submit": "eas submit --platform ios"
+    "build:submit": "eas submit --platform ios",
+    "check": "ultracite check",
+    "fix": "ultracite fix",
+    "ios": "expo run:ios",
+    "prepare": "husky",
+    "start": "expo start"
   },
   "dependencies": {
     "@expo/ui": "55.0.1",
@@ -15,6 +19,7 @@
     "expo-constants": "~55.0.7",
     "expo-dev-client": "~55.0.9",
     "expo-font": "~55.0.4",
+    "expo-haptics": "~55.0.8",
     "expo-linking": "~55.0.7",
     "expo-router": "~55.0.2",
     "expo-sqlite": "~55.0.10",
@@ -27,5 +32,9 @@
     "react-native-screens": "~4.23.0",
     "typescript": "~5.9.2"
   },
-  "version": "1.0.1"
+  "devDependencies": {
+    "@biomejs/biome": "2.4.0",
+    "husky": "^9.1.7",
+    "ultracite": "7.2.4"
+  }
 }

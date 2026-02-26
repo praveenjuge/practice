@@ -1,4 +1,5 @@
-import React, {
+import type React from "react";
+import {
   createContext,
   useCallback,
   useContext,
@@ -50,7 +51,7 @@ type HabitsContextValue = {
   toggleCheckInToday: (id: string) => Promise<void>;
   updateHabit: (
     id: string,
-    input: { name: string; categoryId: HabitCategoryId },
+    input: { name: string; categoryId: HabitCategoryId }
   ) => Promise<void>;
   deleteHabit: (id: string) => Promise<void>;
   reload: () => Promise<void>;
@@ -81,7 +82,7 @@ const addDays = (date: Date, amount: number) =>
   new Date(date.getFullYear(), date.getMonth(), date.getDate() + amount);
 
 const diffInDays = (left: Date, right: Date) =>
-  Math.round((left.getTime() - right.getTime()) / 86400000);
+  Math.round((left.getTime() - right.getTime()) / 86_400_000);
 
 const isValidDateString = (value: string) => DATE_RE.test(value);
 
@@ -105,7 +106,7 @@ const normalizeHabitName = (name: unknown) => {
   }
   if (trimmed.length > MAX_HABIT_NAME_LENGTH) {
     throw new Error(
-      `Habit name must be ${MAX_HABIT_NAME_LENGTH} characters or fewer.`,
+      `Habit name must be ${MAX_HABIT_NAME_LENGTH} characters or fewer.`
     );
   }
   return trimmed;
@@ -139,7 +140,7 @@ export const hasCheckInToday = (checkins: string[], today = getTodayString()) =>
 
 export const getStreaks = (
   checkins: string[],
-  today = getTodayString(),
+  today = getTodayString()
 ): HabitStreaks => {
   const normalized = normalizeDateArray(checkins);
   if (normalized.length === 0 || !isValidDateString(today)) {
@@ -199,8 +200,8 @@ const sanitizeHabits = (raw: unknown) => {
     const checkins = Array.isArray(record.checkins)
       ? normalizeDateArray(
           record.checkins.filter(
-            (value): value is string => typeof value === "string",
-          ),
+            (value): value is string => typeof value === "string"
+          )
         )
       : [];
 
@@ -208,7 +209,7 @@ const sanitizeHabits = (raw: unknown) => {
       id: record.id,
       name,
       categoryId: resolveHabitCategoryId(
-        typeof record.categoryId === "string" ? record.categoryId : null,
+        typeof record.categoryId === "string" ? record.categoryId : null
       ),
       createdAt,
       checkins,
@@ -265,7 +266,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       await CloudStorage.writeFile(
         HABITS_FILE,
         JSON.stringify({ version: FILE_VERSION, habits: [] }),
-        STORAGE_SCOPE,
+        STORAGE_SCOPE
       );
     };
 
@@ -359,7 +360,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         setError("Unable to save changes to iCloud.");
       }
     },
-    [isCloudAvailable],
+    [isCloudAvailable]
   );
 
   const addHabit = useCallback(
@@ -381,7 +382,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       ];
       await saveHabits(nextHabits);
     },
-    [habits, saveHabits],
+    [habits, saveHabits]
   );
 
   const toggleCheckInToday = useCallback(
@@ -409,13 +410,13 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       }
       await saveHabits(nextHabits);
     },
-    [habits, saveHabits],
+    [habits, saveHabits]
   );
 
   const updateHabit = useCallback(
     async (
       id: string,
-      input: { name: string; categoryId: HabitCategoryId },
+      input: { name: string; categoryId: HabitCategoryId }
     ) => {
       if (!id) {
         throw new Error("Habit ID is required.");
@@ -438,7 +439,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       }
       await saveHabits(nextHabits);
     },
-    [habits, saveHabits],
+    [habits, saveHabits]
   );
 
   const deleteHabit = useCallback(
@@ -452,7 +453,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       }
       await saveHabits(nextHabits);
     },
-    [habits, saveHabits],
+    [habits, saveHabits]
   );
 
   const reload = useCallback(async () => {
@@ -469,7 +470,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
         await CloudStorage.writeFile(
           HABITS_FILE,
           JSON.stringify({ version: FILE_VERSION, habits: [] }),
-          STORAGE_SCOPE,
+          STORAGE_SCOPE
         );
         setHabits([]);
         setError(null);
@@ -511,7 +512,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       updateHabit,
       deleteHabit,
       reload,
-    ],
+    ]
   );
 
   return (

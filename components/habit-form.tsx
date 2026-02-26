@@ -1,5 +1,3 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert } from "react-native";
 import {
   BottomSheet,
   Button,
@@ -12,51 +10,55 @@ import {
   Text,
   TextField,
 } from "@expo/ui/swift-ui";
-import { disabled, foregroundStyle, tint } from "@expo/ui/swift-ui/modifiers";
+import {
+  buttonStyle,
+  foregroundStyle,
+  tint,
+} from "@expo/ui/swift-ui/modifiers";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Alert } from "react-native";
+import { APP_ACCENT_COLOR } from "./app-colors";
 import {
   getHabitCategory,
   HABIT_CATEGORIES,
   HABIT_CATEGORY_GROUP_ORDER,
-  resolveHabitCategoryId,
-  type HabitCategoryId,
   type HabitCategoryGroup,
+  type HabitCategoryId,
+  resolveHabitCategoryId,
 } from "./habit-categories";
-import { APP_ACCENT_COLOR } from "./app-colors";
 
-export type HabitFormInput = {
-  name: string;
+export interface HabitFormInput {
   categoryId: HabitCategoryId;
-};
+  name: string;
+}
 
-type GroupedCategories = {
-  group: HabitCategoryGroup;
+interface GroupedCategories {
   categories: (typeof HABIT_CATEGORIES)[number][];
-};
+  group: HabitCategoryGroup;
+}
 
-type HabitFormProps = {
-  initialName: string;
+interface HabitFormProps {
   initialCategoryId?: string | null;
-  submitLabel: string;
-  submitErrorTitle: string;
-  showSubmitSection?: boolean;
-  onSubmitReady?: (submit: (() => void) | null) => void;
+  initialName: string;
   onSavingChange?: (isSaving: boolean) => void;
   onSubmit: (input: HabitFormInput) => Promise<void>;
-};
+  onSubmitReady?: (submit: (() => void) | null) => void;
+  showSubmitSection?: boolean;
+  submitErrorTitle: string;
+  submitLabel: string;
+}
 
 export function HabitForm({
   initialName,
   initialCategoryId,
-  submitLabel,
   submitErrorTitle,
-  showSubmitSection = true,
   onSubmitReady,
   onSavingChange,
   onSubmit,
 }: HabitFormProps) {
   const [name, setName] = useState(initialName);
   const [selectedCategoryId, setSelectedCategoryId] = useState<HabitCategoryId>(
-    resolveHabitCategoryId(initialCategoryId),
+    resolveHabitCategoryId(initialCategoryId)
   );
   const [isSaving, setIsSaving] = useState(false);
   const [isCategorySheetOpen, setIsCategorySheetOpen] = useState(false);
@@ -79,7 +81,7 @@ export function HabitForm({
     return HABIT_CATEGORY_GROUP_ORDER.map((group) => ({
       group,
       categories: filteredCategories.filter(
-        (category) => category.group === group,
+        (category) => category.group === group
       ),
     })).filter((section) => section.categories.length > 0);
   }, [searchQuery]);
@@ -100,7 +102,7 @@ export function HabitForm({
     } catch (error) {
       Alert.alert(
         submitErrorTitle,
-        error instanceof Error ? error.message : "Please try again.",
+        error instanceof Error ? error.message : "Please try again."
       );
     } finally {
       setIsSaving(false);
@@ -119,16 +121,19 @@ export function HabitForm({
   }, [handleSubmit, onSubmitReady]);
 
   return (
-    <Host matchContents useViewportSizeMeasurement style={{ flex: 1 }}>
+    <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
       <List>
         <Section title="Habit">
           <TextField
-            key={`habit-name-${initialName}`}
             defaultValue={initialName}
-            placeholder="Habit name"
+            key={`habit-name-${initialName}`}
             onChangeText={setName}
+            placeholder="Habit name"
           />
-          <Button onPress={openCategorySheet}>
+          <Button
+            modifiers={[buttonStyle("plain")]}
+            onPress={openCategorySheet}
+          >
             <HStack>
               <Text
                 modifiers={[
@@ -141,27 +146,13 @@ export function HabitForm({
                 Category
               </Text>
               <Spacer />
-              <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
-                {selectedCategory.label}
-              </Text>
+              <HStack spacing={10}>
+                <Text>{selectedCategory.label}</Text>
+                <Image color="secondary" size={14} systemName="chevron.right" />
+              </HStack>
             </HStack>
           </Button>
         </Section>
-        {showSubmitSection ? (
-          <Section title="Actions">
-            <Button
-              onPress={handleSubmit}
-              modifiers={[tint(APP_ACCENT_COLOR), disabled(isSaving)]}
-            >
-              <HStack>
-                <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
-                  {isSaving ? "Saving..." : submitLabel}
-                </Text>
-                <Spacer />
-              </HStack>
-            </Button>
-          </Section>
-        ) : null}
       </List>
       <BottomSheet
         isPresented={isCategorySheetOpen}
@@ -170,10 +161,10 @@ export function HabitForm({
         <List>
           <Section title="Search">
             <TextField
-              key={`category-search-${searchInputKey}`}
               defaultValue=""
-              placeholder="Search categories"
+              key={`category-search-${searchInputKey}`}
               onChangeText={setSearchQuery}
+              placeholder="Search categories"
             />
           </Section>
           {groupedCategories.length === 0 ? (
@@ -188,6 +179,7 @@ export function HabitForm({
                   return (
                     <Button
                       key={category.id}
+                      modifiers={[tint(APP_ACCENT_COLOR)]}
                       onPress={() => {
                         setSelectedCategoryId(category.id);
                         setIsCategorySheetOpen(false);
@@ -197,11 +189,7 @@ export function HabitForm({
                         <Text>{category.label}</Text>
                         <Spacer />
                         {isSelected ? (
-                          <Image
-                            systemName="checkmark.circle.fill"
-                            size={16}
-                            color="secondary"
-                          />
+                          <Image size={16} systemName="checkmark" />
                         ) : null}
                       </HStack>
                     </Button>

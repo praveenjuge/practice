@@ -1,6 +1,6 @@
-import React, { useCallback, useState } from "react";
-import { Stack, router } from "expo-router";
+import { router, Stack } from "expo-router";
 import { SymbolView } from "expo-symbols";
+import { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable } from "react-native";
 import { APP_ACCENT_COLOR } from "../../../components/app-colors";
 import { HabitForm, type HabitFormInput } from "../../../components/habit-form";
@@ -10,7 +10,7 @@ export default function NewHabitScreen() {
   const { addHabit } = useHabits();
   const [isSaving, setIsSaving] = useState(false);
   const [submitFromHeader, setSubmitFromHeader] = useState<(() => void) | null>(
-    null,
+    null
   );
 
   const handleSubmit = useCallback(
@@ -18,7 +18,7 @@ export default function NewHabitScreen() {
       await addHabit(input);
       router.back();
     },
-    [addHabit],
+    [addHabit]
   );
 
   const handleHeaderSubmit = useCallback(() => {
@@ -27,7 +27,7 @@ export default function NewHabitScreen() {
 
   const handleSubmitReady = useCallback((submit: (() => void) | null) => {
     setSubmitFromHeader((previousSubmit) =>
-      previousSubmit === submit ? previousSubmit : submit,
+      previousSubmit === submit ? previousSubmit : submit
     );
   }, []);
 
@@ -36,24 +36,18 @@ export default function NewHabitScreen() {
       <Stack.Screen
         options={{
           title: "New Habit",
+          headerLargeTitleEnabled: false,
           headerRight: () => (
             <Pressable
               accessibilityLabel="Add habit"
               accessibilityRole="button"
-              onPress={handleHeaderSubmit}
               disabled={!submitFromHeader || isSaving}
-              style={{
-                width: 38,
-                height: 38,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: !submitFromHeader || isSaving ? 0.45 : 1,
-              }}
+              onPress={handleHeaderSubmit}
             >
               {isSaving ? (
-                <ActivityIndicator size="small" color={APP_ACCENT_COLOR} />
+                <ActivityIndicator color={APP_ACCENT_COLOR} size="small" />
               ) : (
-                <SymbolView name="checkmark" weight="semibold" />
+                <SymbolView name="checkmark" />
               )}
             </Pressable>
           ),
@@ -61,12 +55,12 @@ export default function NewHabitScreen() {
       />
       <HabitForm
         initialName=""
-        submitLabel="Add Habit"
-        submitErrorTitle="Unable to add habit"
-        showSubmitSection={false}
-        onSubmitReady={handleSubmitReady}
         onSavingChange={setIsSaving}
         onSubmit={handleSubmit}
+        onSubmitReady={handleSubmitReady}
+        showSubmitSection={false}
+        submitErrorTitle="Unable to add habit"
+        submitLabel="Add Habit"
       />
     </>
   );

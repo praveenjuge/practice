@@ -1,27 +1,27 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { Stack, router, useLocalSearchParams } from "expo-router";
+import { Host, HStack, List, Spacer, Text } from "@expo/ui/swift-ui";
+import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
+import { router, Stack, useLocalSearchParams } from "expo-router";
 import { SymbolView } from "expo-symbols";
+import { useCallback, useMemo, useState } from "react";
+import { ActivityIndicator, Pressable } from "react-native";
+import { APP_ACCENT_COLOR } from "../../../../components/app-colors";
 import {
   HabitForm,
   type HabitFormInput,
 } from "../../../../components/habit-form";
-import { APP_ACCENT_COLOR } from "../../../../components/app-colors";
 import { useHabits } from "../../../../components/habits-store";
-import { ActivityIndicator, Pressable } from "react-native";
-import { Host, HStack, List, Spacer, Text } from "@expo/ui/swift-ui";
-import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 
 export default function EditHabitScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const { habits, updateHabit } = useHabits();
   const [isSaving, setIsSaving] = useState(false);
   const [submitFromHeader, setSubmitFromHeader] = useState<(() => void) | null>(
-    null,
+    null
   );
   const habitId = Array.isArray(id) ? id[0] : id;
   const habit = useMemo(
     () => habits.find((item) => item.id === habitId),
-    [habits, habitId],
+    [habits, habitId]
   );
 
   const handleHeaderSubmit = useCallback(() => {
@@ -30,7 +30,7 @@ export default function EditHabitScreen() {
 
   const handleSubmitReady = useCallback((submit: (() => void) | null) => {
     setSubmitFromHeader((previousSubmit) =>
-      previousSubmit === submit ? previousSubmit : submit,
+      previousSubmit === submit ? previousSubmit : submit
     );
   }, []);
 
@@ -42,14 +42,14 @@ export default function EditHabitScreen() {
       await updateHabit(habit.id, input);
       router.back();
     },
-    [habit, updateHabit],
+    [habit, updateHabit]
   );
 
   if (!habit) {
     return (
       <>
         <Stack.Screen options={{ title: "Edit Habit" }} />
-        <Host matchContents useViewportSizeMeasurement style={{ flex: 1 }}>
+        <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
           <List>
             <HStack>
               <Text>Not found</Text>
@@ -76,47 +76,32 @@ export default function EditHabitScreen() {
       <Stack.Screen
         options={{
           title: "Edit Habit",
+          headerLargeTitleEnabled: false,
           headerRight: () => (
             <Pressable
               accessibilityLabel="Save changes"
               accessibilityRole="button"
-              onPress={handleHeaderSubmit}
               disabled={!submitFromHeader || isSaving}
-              style={{
-                width: 40,
-                height: 40,
-                alignItems: "center",
-                justifyContent: "center",
-                opacity: !submitFromHeader || isSaving ? 0.45 : 1,
-              }}
+              onPress={handleHeaderSubmit}
             >
               {isSaving ? (
-                <ActivityIndicator size="small" color={APP_ACCENT_COLOR} />
+                <ActivityIndicator color={APP_ACCENT_COLOR} size="small" />
               ) : (
-                <SymbolView
-                  name="checkmark"
-                  resizeMode="scaleAspectFit"
-                  tintColor={APP_ACCENT_COLOR}
-                  weight="semibold"
-                  style={{
-                    width: 20,
-                    height: 20,
-                  }}
-                />
+                <SymbolView name="checkmark" />
               )}
             </Pressable>
           ),
         }}
       />
       <HabitForm
-        initialName={habit.name}
         initialCategoryId={habit.categoryId}
-        submitLabel="Save Changes"
-        submitErrorTitle="Unable to update habit"
-        showSubmitSection={false}
-        onSubmitReady={handleSubmitReady}
+        initialName={habit.name}
         onSavingChange={setIsSaving}
         onSubmit={handleSubmit}
+        onSubmitReady={handleSubmitReady}
+        showSubmitSection={false}
+        submitErrorTitle="Unable to update habit"
+        submitLabel="Save Changes"
       />
     </>
   );

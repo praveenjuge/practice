@@ -1,24 +1,30 @@
-import React from "react";
-import { Stack, router } from "expo-router";
-import { Alert } from "react-native";
-import { APP_ACCENT_COLOR } from "../../components/app-colors";
 import {
-  useHabits,
-  getTodayString,
-  hasCheckInToday,
-} from "../../components/habits-store";
-import {
+  Button,
+  ContextMenu,
   Host,
   HStack,
+  Image,
   List,
   Section,
   Spacer,
   Text,
-  Image,
-  Button,
-  ContextMenu,
 } from "@expo/ui/swift-ui";
-import { foregroundStyle, tint } from "@expo/ui/swift-ui/modifiers";
+import {
+  buttonStyle,
+  foregroundStyle,
+  refreshable,
+  tint,
+} from "@expo/ui/swift-ui/modifiers";
+import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
+import { router, Stack } from "expo-router";
+import { useState } from "react";
+import { Alert } from "react-native";
+import { APP_ACCENT_COLOR } from "../../components/app-colors";
+import {
+  getTodayString,
+  hasCheckInToday,
+  useHabits,
+} from "../../components/habits-store";
 
 export default function HomeScreen() {
   const {
@@ -28,8 +34,16 @@ export default function HomeScreen() {
     error,
     toggleCheckInToday,
     deleteHabit,
+    reload,
   } = useHabits();
   const today = getTodayString();
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const filteredHabits = searchQuery.trim()
+    ? habits.filter((h) =>
+        h.name.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : habits;
 
   const handleAddOpen = () => {
     router.push("/habit/new");
@@ -38,13 +52,18 @@ export default function HomeScreen() {
   const showActionError = (title: string, error: unknown) => {
     Alert.alert(
       title,
-      error instanceof Error ? error.message : "Please try again.",
+      error instanceof Error ? error.message : "Please try again."
     );
   };
 
   const handleToggle = (habitId: string) => {
-    void toggleCheckInToday(habitId).catch((error) => {
-      showActionError("Unable to update habit", error);
+    const habit = habits.find((h) => h.id === habitId);
+    const willCheckIn = !hasCheckInToday(habit?.checkins ?? [], today);
+    if (willCheckIn) {
+      notificationAsync(NotificationFeedbackType.Success);
+    }
+    toggleCheckInToday(habitId).catch((err) => {
+      showActionError("Unable to update habit", err);
     });
   };
 
@@ -58,13 +77,18 @@ export default function HomeScreen() {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            void deleteHabit(habitId).catch((error) => {
-              showActionError("Unable to delete habit", error);
+            notificationAsync(NotificationFeedbackType.Warning);
+            deleteHabit(habitId).catch((err) => {
+              showActionError("Unable to delete habit", err);
             });
           },
         },
-      ],
+      ]
     );
+  };
+
+  const handleRefresh = async () => {
+    await reload();
   };
 
   return (
@@ -72,11 +96,16 @@ export default function HomeScreen() {
       <Stack.Screen
         options={{
           title: "Practice",
+          headerSearchBarOptions: {
+            hideWhenScrolling: true,
+            placeholder: "Search habits",
+            onChangeText: (e) => setSearchQuery(e.nativeEvent.text),
+          },
         }}
       />
-      <Host matchContents useViewportSizeMeasurement style={{ flex: 1 }}>
-        <List>
-          {!isCloudAvailable ? (
+      <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
+        <List modifiers={[refreshable(handleRefresh)]}>
+          {isCloudAvailable ? null : (
             <Section title="Sync">
               {error ? (
                 <Text modifiers={[foregroundStyle("red")]}>{error}</Text>
@@ -84,66 +113,57 @@ export default function HomeScreen() {
                 <Text>iCloud is unavailable on this device.</Text>
               )}
             </Section>
-          ) : null}
+          )}
           <Section title="Your Habits">
-            {!isLoaded ? (
-              <Text>Loading your habits...</Text>
-            ) : (
-              habits.map((habit) => {
+            {isLoaded ? (
+              filteredHabits.map((habit) => {
                 const checkedToday = hasCheckInToday(habit.checkins, today);
                 return (
                   <ContextMenu key={habit.id}>
                     <ContextMenu.Items>
                       <Button
-                        modifiers={[tint(APP_ACCENT_COLOR)]}
-                        systemImage={
-                          checkedToday ? "circle" : "checkmark.circle"
-                        }
                         label={
                           checkedToday ? "Mark Incomplete" : "Mark Complete"
                         }
+                        modifiers={[tint(APP_ACCENT_COLOR)]}
                         onPress={() => handleToggle(habit.id)}
+                        systemImage={
+                          checkedToday ? "circle" : "checkmark.circle"
+                        }
                       />
                       <Button
-                        role="destructive"
-                        systemImage="trash"
                         label="Delete"
                         onPress={() => handleDelete(habit.id, habit.name)}
+                        systemImage="trash"
                       />
                     </ContextMenu.Items>
                     <ContextMenu.Trigger>
-                      <Button onPress={() => router.push(`/habit/${habit.id}`)}>
+                      <Button
+                        modifiers={[buttonStyle("plain")]}
+                        onPress={() => router.push(`/habit/${habit.id}`)}
+                      >
                         <HStack>
                           <HStack spacing={10}>
                             <Button onPress={() => handleToggle(habit.id)}>
                               <Image
+                                color={
+                                  checkedToday ? APP_ACCENT_COLOR : "secondary"
+                                }
                                 size={22}
                                 systemName={
                                   checkedToday
                                     ? "checkmark.circle.fill"
                                     : "circle"
                                 }
-                                color={
-                                  checkedToday ? APP_ACCENT_COLOR : "secondary"
-                                }
                               />
                             </Button>
-                            <Text
-                              modifiers={[
-                                foregroundStyle({
-                                  type: "hierarchical",
-                                  style: "primary",
-                                }),
-                              ]}
-                            >
-                              {habit.name}
-                            </Text>
+                            <Text>{habit.name}</Text>
                           </HStack>
                           <Spacer />
                           <Image
-                            systemName="chevron.right"
-                            size={14}
                             color="secondary"
+                            size={14}
+                            systemName="chevron.right"
                           />
                         </HStack>
                       </Button>
@@ -151,17 +171,17 @@ export default function HomeScreen() {
                   </ContextMenu>
                 );
               })
+            ) : (
+              <Text>Loading your habits...</Text>
             )}
             <Button onPress={handleAddOpen}>
               <HStack spacing={10}>
                 <Image
-                  systemName="plus.circle.fill"
                   color={APP_ACCENT_COLOR}
                   size={22}
+                  systemName="plus.circle.fill"
                 />
-                <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
-                  Add Habit
-                </Text>
+                <Text modifiers={[tint(APP_ACCENT_COLOR)]}>Add Habit</Text>
               </HStack>
             </Button>
           </Section>

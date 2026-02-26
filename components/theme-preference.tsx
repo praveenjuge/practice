@@ -11,12 +11,12 @@ import "expo-sqlite/localStorage/install";
 
 type ThemePreference = "system" | "light" | "dark";
 
-type ThemePreferenceContextValue = {
+interface ThemePreferenceContextValue {
+  isLoaded: boolean;
   preference: ThemePreference;
   resolvedScheme: "light" | "dark";
   setPreference: (preference: ThemePreference) => void;
-  isLoaded: boolean;
-};
+}
 
 const STORAGE_KEY = "practice.themePreference";
 
@@ -25,7 +25,7 @@ const ThemePreferenceContext =
 
 const resolveScheme = (
   preference: ThemePreference,
-  systemScheme: ColorSchemeName,
+  systemScheme: ColorSchemeName
 ): "light" | "dark" => {
   if (preference === "system") {
     return systemScheme === "dark" ? "dark" : "light";
@@ -61,7 +61,7 @@ export function ThemePreferenceProvider({
 }) {
   const systemScheme = useColorScheme();
   const [preference, setPreferenceState] = useState<ThemePreference>(
-    loadInitialPreference,
+    loadInitialPreference
   );
 
   const setPreference = useCallback((newPreference: ThemePreference) => {
@@ -76,7 +76,7 @@ export function ThemePreferenceProvider({
 
   const resolvedScheme = useMemo(
     () => resolveScheme(preference, systemScheme),
-    [preference, systemScheme],
+    [preference, systemScheme]
   );
 
   const value = useMemo(
@@ -86,7 +86,7 @@ export function ThemePreferenceProvider({
       setPreference,
       isLoaded: true,
     }),
-    [preference, resolvedScheme, setPreference],
+    [preference, resolvedScheme, setPreference]
   );
 
   return (
@@ -100,7 +100,7 @@ export function useThemePreference() {
   const context = useContext(ThemePreferenceContext);
   if (!context) {
     throw new Error(
-      "useThemePreference must be used within ThemePreferenceProvider",
+      "useThemePreference must be used within ThemePreferenceProvider"
     );
   }
   return context;

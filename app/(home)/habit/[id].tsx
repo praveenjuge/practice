@@ -1,12 +1,3 @@
-import React, { useMemo } from "react";
-import { Stack, router, useLocalSearchParams } from "expo-router";
-import { Alert } from "react-native";
-import { APP_ACCENT_COLOR } from "../../../components/app-colors";
-import {
-  getStreaks,
-  getTodayString,
-  useHabits,
-} from "../../../components/habits-store";
 import {
   Button,
   Host,
@@ -18,6 +9,16 @@ import {
   Text,
 } from "@expo/ui/swift-ui";
 import { foregroundStyle, tint } from "@expo/ui/swift-ui/modifiers";
+import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
+import { router, Stack, useLocalSearchParams } from "expo-router";
+import { useMemo } from "react";
+import { Alert } from "react-native";
+import { APP_ACCENT_COLOR } from "../../../components/app-colors";
+import {
+  getStreaks,
+  getTodayString,
+  useHabits,
+} from "../../../components/habits-store";
 
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
@@ -32,7 +33,7 @@ export default function HabitDetailsScreen() {
     return (
       <>
         <Stack.Screen options={{ title: "Habit" }} />
-        <Host matchContents useViewportSizeMeasurement style={{ flex: 1 }}>
+        <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
           <List>
             <HStack>
               <Text>Not found</Text>
@@ -72,8 +73,11 @@ export default function HabitDetailsScreen() {
   };
 
   const handleToggle = () => {
-    void toggleCheckInToday(habit.id).catch((error) => {
-      showActionError("Unable to update habit", error);
+    if (!isCompletedToday) {
+      notificationAsync(NotificationFeedbackType.Success);
+    }
+    toggleCheckInToday(habit.id).catch((err) => {
+      showActionError("Unable to update habit", err);
     });
   };
 
@@ -87,11 +91,12 @@ export default function HabitDetailsScreen() {
           text: "Delete",
           style: "destructive",
           onPress: async () => {
+            notificationAsync(NotificationFeedbackType.Warning);
             try {
               await deleteHabit(habit.id);
               router.back();
-            } catch (error) {
-              showActionError("Unable to delete habit", error);
+            } catch (err) {
+              showActionError("Unable to delete habit", err);
             }
           },
         },
@@ -109,7 +114,7 @@ export default function HabitDetailsScreen() {
       <Stack.Screen
         options={{ title: habit.name, headerBackButtonDisplayMode: "minimal" }}
       />
-      <Host matchContents useViewportSizeMeasurement style={{ flex: 1 }}>
+      <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
         <List>
           <Section title="Streaks">
             <HStack>
@@ -132,46 +137,31 @@ export default function HabitDetailsScreen() {
             <HStack>
               <Text>Last check-in</Text>
               <Spacer />
-              <Text modifiers={[secondaryStyle]}>
-                {lastCheckin ?? "Never"}
-              </Text>
+              <Text modifiers={[secondaryStyle]}>{lastCheckin ?? "Never"}</Text>
             </HStack>
           </Section>
           <Section title="Actions">
-            <Button
-              onPress={handleToggle}
-              modifiers={[tint(APP_ACCENT_COLOR)]}
-            >
+            <Button modifiers={[tint(APP_ACCENT_COLOR)]} onPress={handleToggle}>
               <HStack>
-                <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
+                <Text>
                   {isCompletedToday ? "Mark as Incomplete" : "Mark as Complete"}
                 </Text>
                 <Spacer />
               </HStack>
             </Button>
-            <Button onPress={handleEdit} modifiers={[tint(APP_ACCENT_COLOR)]}>
+            <Button modifiers={[tint(APP_ACCENT_COLOR)]} onPress={handleEdit}>
               <HStack>
-                <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
-                  Edit habit
-                </Text>
+                <Text>Edit habit</Text>
                 <Spacer />
-                <Image systemName="chevron.right" size={14} color="secondary" />
+                <Image color="secondary" size={14} systemName="chevron.right" />
               </HStack>
             </Button>
-            <Button onPress={handleDelete}>
+            {/** biome-ignore lint/a11y/useValidAriaRole: <this is swift> */}
+            <Button onPress={handleDelete} role="destructive">
               <HStack>
-                <Text
-                  modifiers={[
-                    foregroundStyle({
-                      type: "hierarchical",
-                      style: "primary",
-                    }),
-                  ]}
-                >
-                  Delete habit
-                </Text>
+                <Text>Delete habit</Text>
                 <Spacer />
-                <Image systemName="chevron.right" size={14} color="secondary" />
+                <Image color="secondary" size={14} systemName="chevron.right" />
               </HStack>
             </Button>
           </Section>
