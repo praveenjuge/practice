@@ -1,0 +1,63 @@
+{
+  "configVersion": 0,
+  "apple": {
+    "version": "1.0",
+    "copyright": "Praveen Juge",
+    "release": {
+      "automaticRelease": true
+    },
+    "info": {
+      "en-US": {
+        "description": "Practice is a beautifully simple habit tracker designed to help you build consistency and stay motivated with streaks.\n\nTrack daily habits, check in with a tap, and view streaks and progress inside each habit’s detail screen.\n\nKEY FEATURES\n- Simple daily check-ins\n- Streaks (current and best) and progress details per habit\n- iCloud Sync\n- Native iOS design\n- Privacy-first\n\nHOW IT WORKS\n1. Add a habit you want to build\n2. Check it off each day you complete it\n3. Open a habit to see its streaks and progress\n4. Stay consistent and build momentum\n\nPractice is perfect for:\n- Daily exercise\n- Reading\n- Meditation\n- Learning a language\n- Any habit you want to make stick\n\nThe key to lasting habits is consistency. Practice gives you just enough tracking to stay accountable without becoming a chore.",
+        "keywords": [
+          "habit",
+          "tracker",
+          "streak",
+          "daily",
+          "routine",
+          "goals",
+          "productivity",
+          "check-in",
+          "wellness",
+          "icloud",
+          "simple",
+          "motivation"
+        ],
+        "promoText": "Start each day with intention. Practice helps you build lasting habits through simple daily check-ins and streak tracking. Synced across all your iOS devices via iCloud.",
+        "supportUrl": "https://praveenjuge.com/practice/privacy/",
+        "title": "Practice: Habit Tracker",
+        "subtitle": "Build streaks, Stay consistent",
+        "privacyPolicyUrl": "https://praveenjuge.com/practice/privacy/"
+      }
+    },
+    "categories": ["PRODUCTIVITY", "HEALTH_AND_FITNESS"],
+    "advisory": {
+      "ageRatingOverride": "NONE",
+      "alcoholTobaccoOrDrugUseOrReferences": "NONE",
+      "contests": "NONE",
+      "gambling": false,
+      "gamblingSimulated": "NONE",
+      "horrorOrFearThemes": "NONE",
+      "kidsAgeBand": null,
+      "koreaAgeRatingOverride": "NONE",
+      "lootBox": false,
+      "matureOrSuggestiveThemes": "NONE",
+      "medicalOrTreatmentInformation": "NONE",
+      "profanityOrCrudeHumor": "NONE",
+      "sexualContentGraphicAndNudity": "NONE",
+      "sexualContentOrNudity": "NONE",
+      "unrestrictedWebAccess": false,
+      "violenceCartoonOrFantasy": "NONE",
+      "violenceRealistic": "NONE",
+      "violenceRealisticProlongedGraphicOrSadistic": "NONE"
+    },
+    "review": {
+      "firstName": "Juge",
+      "lastName": "Praveen",
+      "email": "hello@praveenjuge.com",
+      "phone": "+10000000000",
+      "demoRequired": false,
+      "notes": "This is a simple habit tracking app that allows users to:\n1. Create habits they want to track\n2. Check in daily to mark habits as complete\n3. View streaks and progress inside each habit’s detail screen\n\nTESTING THE APP\n1. On the home screen, tap “Add Habit” to create a new habit\n2. Enter a name (e.g., “Exercise”)\n3. Tap the circle next to the habit to mark it complete for today\n4. Tap the habit row to open its detail screen — you will see:\n   - Streaks (Current and Best)\n   - Progress (Total check-ins, Last check-in)\n5. Long-press a habit for quick actions (edit, delete, toggle completion)\n\niCloud Sync:\nIf iCloud is enabled, data is stored in iCloud. If iCloud is unavailable, the app shows a message and stores data locally.\n\nNo sign-in required.\n"
+    }
+  }
+}
