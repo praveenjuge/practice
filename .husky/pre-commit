@@ -9,26 +9,9 @@ if [ -z "$STAGED_FILES" ]; then
   exit 0
 fi
 
-# Keep hook scoped to staged files to avoid unrelated repo-wide failures.
-set --
-while IFS= read -r file; do
-  case "$file" in
-    *.js|*.jsx|*.cjs|*.mjs|*.ts|*.tsx|*.cts|*.mts|*.json|*.jsonc)
-      set -- "$@" "$file"
-      ;;
-  esac
-done <<EOF
-$STAGED_FILES
-EOF
-
-if [ "$#" -eq 0 ]; then
-  echo "No staged JS/TS/JSON files for Ultracite"
-  exit 0
-fi
-
 # Run formatter, then continue so we can still re-stage touched files
 set +e
-bun x ultracite fix "$@"
+bun x ultracite fix
 FORMAT_EXIT_CODE=$?
 set -e
 

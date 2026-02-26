@@ -26,36 +26,36 @@ if (Platform.OS === "ios") {
   CloudStorage.setProvider(CloudStorageProvider.ICloud);
 }
 
-export type Habit = {
+export interface Habit {
+  categoryId: HabitCategoryId;
+  checkins: string[];
+  createdAt: string;
   id: string;
   name: string;
-  categoryId: HabitCategoryId;
-  createdAt: string;
-  checkins: string[];
-};
+}
 
-export type HabitStreaks = {
-  current: number;
+export interface HabitStreaks {
   best: number;
-};
+  current: number;
+}
 
-type HabitsContextValue = {
-  habits: Habit[];
-  isLoaded: boolean;
-  isCloudAvailable: boolean;
-  error: string | null;
+interface HabitsContextValue {
   addHabit: (input: {
     name: string;
     categoryId?: HabitCategoryId;
   }) => Promise<void>;
+  deleteHabit: (id: string) => Promise<void>;
+  error: string | null;
+  habits: Habit[];
+  isCloudAvailable: boolean;
+  isLoaded: boolean;
+  reload: () => Promise<void>;
   toggleCheckInToday: (id: string) => Promise<void>;
   updateHabit: (
     id: string,
     input: { name: string; categoryId: HabitCategoryId }
   ) => Promise<void>;
-  deleteHabit: (id: string) => Promise<void>;
-  reload: () => Promise<void>;
-};
+}
 
 const HabitsContext = createContext<HabitsContextValue | null>(null);
 
@@ -149,7 +149,10 @@ export const getStreaks = (
 
   const sorted = normalized.slice().sort();
   const set = new Set(sorted);
-  const latest = sorted[sorted.length - 1];
+  const latest = sorted.at(-1);
+  if (!latest) {
+    return { current: 0, best: 0 };
+  }
 
   let current = 0;
   const gap = diffInDays(parseDateString(today), parseDateString(latest));
@@ -254,6 +257,11 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
+    const runIfActive = (task: () => void) => {
+      if (!cancelled) {
+        task();
+      }
+    };
 
     const ensureStoragePath = async () => {
       const dirExists = await CloudStorage.exists(HABITS_DIR, STORAGE_SCOPE);
@@ -279,7 +287,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         await CloudStorage.triggerSync(HABITS_FILE, STORAGE_SCOPE);
-      } catch (syncError) {
+      } catch {
         // Ignore sync issues; readFile will still try to access the file.
       }
       try {
@@ -296,27 +304,21 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
 
     const ensureReady = async () => {
       if (!isCloudAvailable) {
-        if (!cancelled) {
-          setIsLoaded(true);
-        }
+        runIfActive(() => setIsLoaded(true));
         return;
       }
 
+      setIsLoaded(false);
       try {
-        setIsLoaded(false);
         const nextHabits = await readFromCloud();
-        if (!cancelled) {
+        runIfActive(() => {
           setHabits(nextHabits);
           setError(null);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError("Unable to access iCloud right now.");
-        }
+        });
+      } catch {
+        runIfActive(() => setError("Unable to access iCloud right now."));
       } finally {
-        if (!cancelled) {
-          setIsLoaded(true);
-        }
+        runIfActive(() => setIsLoaded(true));
       }
     };
 
@@ -352,7 +354,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
             await CloudStorage.writeFile(HABITS_FILE, payload, STORAGE_SCOPE);
             setError(null);
             return;
-          } catch (retryError) {
+          } catch {
             setError("Unable to save changes to iCloud.");
             return;
           }
@@ -478,14 +480,14 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       }
       try {
         await CloudStorage.triggerSync(HABITS_FILE, STORAGE_SCOPE);
-      } catch (syncError) {
+      } catch {
         // Ignore sync issues and try reading anyway.
       }
       const content = await CloudStorage.readFile(HABITS_FILE, STORAGE_SCOPE);
       const nextHabits = parseHabitsContent(content);
       setHabits(nextHabits);
       setError(null);
-    } catch (err) {
+    } catch {
       setError("Unable to refresh from iCloud.");
     }
   }, [isCloudAvailable]);
