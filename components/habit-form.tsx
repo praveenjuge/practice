@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, PlatformColor } from "react-native";
+import { Alert } from "react-native";
 import {
   BottomSheet,
   Button,
@@ -12,6 +12,7 @@ import {
   Text,
   TextField,
 } from "@expo/ui/swift-ui";
+import { disabled, foregroundStyle, tint } from "@expo/ui/swift-ui/modifiers";
 import {
   getHabitCategory,
   HABIT_CATEGORIES,
@@ -129,9 +130,18 @@ export function HabitForm({
           />
           <Button onPress={openCategorySheet}>
             <HStack>
-              <Text color="secondary">Category</Text>
+              <Text
+                modifiers={[
+                  foregroundStyle({
+                    type: "hierarchical",
+                    style: "secondary",
+                  }),
+                ]}
+              >
+                Category
+              </Text>
               <Spacer />
-              <Text color={PlatformColor("systemGreen") as unknown as string}>
+              <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
                 {selectedCategory.label}
               </Text>
             </HStack>
@@ -141,11 +151,10 @@ export function HabitForm({
           <Section title="Actions">
             <Button
               onPress={handleSubmit}
-              disabled={isSaving}
-              color={APP_ACCENT_COLOR}
+              modifiers={[tint(APP_ACCENT_COLOR), disabled(isSaving)]}
             >
               <HStack>
-                <Text color={APP_ACCENT_COLOR}>
+                <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
                   {isSaving ? "Saving..." : submitLabel}
                 </Text>
                 <Spacer />
@@ -155,9 +164,8 @@ export function HabitForm({
         ) : null}
       </List>
       <BottomSheet
-        isOpened={isCategorySheetOpen}
-        onIsOpenedChange={setIsCategorySheetOpen}
-        presentationDetents={["large"]}
+        isPresented={isCategorySheetOpen}
+        onIsPresentedChange={setIsCategorySheetOpen}
       >
         <List>
           <Section title="Search">

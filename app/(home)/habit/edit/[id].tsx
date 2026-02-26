@@ -9,6 +9,7 @@ import { APP_ACCENT_COLOR } from "../../../../components/app-colors";
 import { useHabits } from "../../../../components/habits-store";
 import { ActivityIndicator, Pressable } from "react-native";
 import { Host, HStack, List, Spacer, Text } from "@expo/ui/swift-ui";
+import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 
 export default function EditHabitScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
@@ -53,7 +54,16 @@ export default function EditHabitScreen() {
             <HStack>
               <Text>Not found</Text>
               <Spacer />
-              <Text color="secondary">This habit no longer exists</Text>
+              <Text
+                modifiers={[
+                  foregroundStyle({
+                    type: "hierarchical",
+                    style: "secondary",
+                  }),
+                ]}
+              >
+                This habit no longer exists
+              </Text>
             </HStack>
           </List>
         </Host>

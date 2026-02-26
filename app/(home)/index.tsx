@@ -18,6 +18,7 @@ import {
   Button,
   ContextMenu,
 } from "@expo/ui/swift-ui";
+import { foregroundStyle, tint } from "@expo/ui/swift-ui/modifiers";
 
 export default function HomeScreen() {
   const {
@@ -37,7 +38,7 @@ export default function HomeScreen() {
   const showActionError = (title: string, error: unknown) => {
     Alert.alert(
       title,
-      error instanceof Error ? error.message : "Please try again."
+      error instanceof Error ? error.message : "Please try again.",
     );
   };
 
@@ -62,7 +63,7 @@ export default function HomeScreen() {
             });
           },
         },
-      ]
+      ],
     );
   };
 
@@ -78,7 +79,7 @@ export default function HomeScreen() {
           {!isCloudAvailable ? (
             <Section title="Sync">
               {error ? (
-                <Text color="red">{error}</Text>
+                <Text modifiers={[foregroundStyle("red")]}>{error}</Text>
               ) : (
                 <Text>iCloud is unavailable on this device.</Text>
               )}
@@ -91,24 +92,24 @@ export default function HomeScreen() {
               habits.map((habit) => {
                 const checkedToday = hasCheckInToday(habit.checkins, today);
                 return (
-                  <ContextMenu key={habit.id} activationMethod="longPress">
+                  <ContextMenu key={habit.id}>
                     <ContextMenu.Items>
                       <Button
-                        color={APP_ACCENT_COLOR}
+                        modifiers={[tint(APP_ACCENT_COLOR)]}
                         systemImage={
                           checkedToday ? "circle" : "checkmark.circle"
                         }
+                        label={
+                          checkedToday ? "Mark Incomplete" : "Mark Complete"
+                        }
                         onPress={() => handleToggle(habit.id)}
-                      >
-                        {checkedToday ? "Mark Incomplete" : "Mark Complete"}
-                      </Button>
+                      />
                       <Button
                         role="destructive"
                         systemImage="trash"
+                        label="Delete"
                         onPress={() => handleDelete(habit.id, habit.name)}
-                      >
-                        Delete
-                      </Button>
+                      />
                     </ContextMenu.Items>
                     <ContextMenu.Trigger>
                       <Button onPress={() => router.push(`/habit/${habit.id}`)}>
@@ -127,7 +128,16 @@ export default function HomeScreen() {
                                 }
                               />
                             </Button>
-                            <Text color="primary">{habit.name}</Text>
+                            <Text
+                              modifiers={[
+                                foregroundStyle({
+                                  type: "hierarchical",
+                                  style: "primary",
+                                }),
+                              ]}
+                            >
+                              {habit.name}
+                            </Text>
                           </HStack>
                           <Spacer />
                           <Image
@@ -149,7 +159,9 @@ export default function HomeScreen() {
                   color={APP_ACCENT_COLOR}
                   size={22}
                 />
-                <Text color={APP_ACCENT_COLOR}>Add Habit</Text>
+                <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
+                  Add Habit
+                </Text>
               </HStack>
             </Button>
           </Section>

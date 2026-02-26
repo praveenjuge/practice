@@ -5,7 +5,6 @@
     "version": "1.0.1",
     "orientation": "portrait",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "scheme": "practice",
     "ios": {
       "supportsTablet": false,
@@ -23,13 +22,21 @@
           "iCloudContainerEnvironment": "Production",
           "iCloudContainerIdentifier": "iCloud.com.praveenjuge.practice"
         }
-      ]
+      ],
+      "expo-sqlite",
+      "expo-font"
     ],
+    "experiments": {
+      "reactCompiler": true
+    },
     "extra": {
       "router": {},
       "eas": {
         "projectId": "9dcaabde-e8e9-4eaf-b603-faa06acc6707"
       }
+    },
+    "android": {
+      "package": "com.praveenjuge.practice"
     }
   }
 }

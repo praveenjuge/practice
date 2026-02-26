@@ -1,19 +1,19 @@
-import React, {
+import type React from "react";
+import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
-import { Appearance, ColorSchemeName, useColorScheme } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Appearance, type ColorSchemeName, useColorScheme } from "react-native";
+import "expo-sqlite/localStorage/install";
 
 type ThemePreference = "system" | "light" | "dark";
 
 type ThemePreferenceContextValue = {
   preference: ThemePreference;
-  resolvedScheme: Exclude<ColorSchemeName, null>;
+  resolvedScheme: "light" | "dark";
   setPreference: (preference: ThemePreference) => void;
   isLoaded: boolean;
 };
@@ -25,20 +25,33 @@ const ThemePreferenceContext =
 
 const resolveScheme = (
   preference: ThemePreference,
-  systemScheme: ColorSchemeName
-): Exclude<ColorSchemeName, null> => {
+  systemScheme: ColorSchemeName,
+): "light" | "dark" => {
   if (preference === "system") {
-    return systemScheme ?? "light";
+    return systemScheme === "dark" ? "dark" : "light";
   }
   return preference;
 };
 
 const applyAppearancePreference = (preference: ThemePreference) => {
   if (preference === "system") {
-    Appearance.setColorScheme(null);
+    Appearance.setColorScheme("unspecified");
     return;
   }
   Appearance.setColorScheme(preference);
+};
+
+const loadInitialPreference = (): ThemePreference => {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved === "light" || saved === "dark" || saved === "system") {
+      applyAppearancePreference(saved);
+      return saved;
+    }
+  } catch {
+    // Ignore read errors on startup
+  }
+  return "system";
 };
 
 export function ThemePreferenceProvider({
@@ -47,40 +60,23 @@ export function ThemePreferenceProvider({
   children: React.ReactNode;
 }) {
   const systemScheme = useColorScheme();
-  const [preference, setPreferenceState] = useState<ThemePreference>("system");
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [preference, setPreferenceState] = useState<ThemePreference>(
+    loadInitialPreference,
+  );
 
-  // Load saved preference on mount
-  useEffect(() => {
-    const loadPreference = async () => {
-      try {
-        const saved = await AsyncStorage.getItem(STORAGE_KEY);
-        if (saved === "light" || saved === "dark" || saved === "system") {
-          setPreferenceState(saved);
-          applyAppearancePreference(saved);
-        }
-      } catch (error) {
-        console.error("Failed to load theme preference:", error);
-      } finally {
-        setIsLoaded(true);
-      }
-    };
-    loadPreference();
-  }, []);
-
-  const setPreference = useCallback(async (newPreference: ThemePreference) => {
+  const setPreference = useCallback((newPreference: ThemePreference) => {
     setPreferenceState(newPreference);
     applyAppearancePreference(newPreference);
     try {
-      await AsyncStorage.setItem(STORAGE_KEY, newPreference);
-    } catch (error) {
-      console.error("Failed to save theme preference:", error);
+      localStorage.setItem(STORAGE_KEY, newPreference);
+    } catch {
+      // Ignore write errors
     }
   }, []);
 
   const resolvedScheme = useMemo(
     () => resolveScheme(preference, systemScheme),
-    [preference, systemScheme]
+    [preference, systemScheme],
   );
 
   const value = useMemo(
@@ -88,9 +84,9 @@ export function ThemePreferenceProvider({
       preference,
       resolvedScheme,
       setPreference,
-      isLoaded,
+      isLoaded: true,
     }),
-    [preference, resolvedScheme, setPreference, isLoaded]
+    [preference, resolvedScheme, setPreference],
   );
 
   return (
@@ -104,7 +100,7 @@ export function useThemePreference() {
   const context = useContext(ThemePreferenceContext);
   if (!context) {
     throw new Error(
-      "useThemePreference must be used within ThemePreferenceProvider"
+      "useThemePreference must be used within ThemePreferenceProvider",
     );
   }
   return context;

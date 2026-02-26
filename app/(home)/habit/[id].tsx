@@ -17,6 +17,7 @@ import {
   Spacer,
   Text,
 } from "@expo/ui/swift-ui";
+import { foregroundStyle, tint } from "@expo/ui/swift-ui/modifiers";
 
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
@@ -36,7 +37,16 @@ export default function HabitDetailsScreen() {
             <HStack>
               <Text>Not found</Text>
               <Spacer />
-              <Text color="secondary">This habit no longer exists</Text>
+              <Text
+                modifiers={[
+                  foregroundStyle({
+                    type: "hierarchical",
+                    style: "secondary",
+                  }),
+                ]}
+              >
+                This habit no longer exists
+              </Text>
             </HStack>
           </List>
         </Host>
@@ -89,6 +99,11 @@ export default function HabitDetailsScreen() {
     );
   };
 
+  const secondaryStyle = foregroundStyle({
+    type: "hierarchical",
+    style: "secondary",
+  });
+
   return (
     <>
       <Stack.Screen
@@ -100,45 +115,61 @@ export default function HabitDetailsScreen() {
             <HStack>
               <Text>Current</Text>
               <Spacer />
-              <Text color="secondary">{`${streaks.current}`}</Text>
+              <Text modifiers={[secondaryStyle]}>{`${streaks.current}`}</Text>
             </HStack>
             <HStack>
               <Text>Highest</Text>
               <Spacer />
-              <Text color="secondary">{`${streaks.best}`}</Text>
+              <Text modifiers={[secondaryStyle]}>{`${streaks.best}`}</Text>
             </HStack>
           </Section>
           <Section title="Progress">
             <HStack>
               <Text>Total check-ins</Text>
               <Spacer />
-              <Text color="secondary">{`${totalCheckins}`}</Text>
+              <Text modifiers={[secondaryStyle]}>{`${totalCheckins}`}</Text>
             </HStack>
             <HStack>
               <Text>Last check-in</Text>
               <Spacer />
-              <Text color="secondary">{lastCheckin ?? "Never"}</Text>
+              <Text modifiers={[secondaryStyle]}>
+                {lastCheckin ?? "Never"}
+              </Text>
             </HStack>
           </Section>
           <Section title="Actions">
-            <Button onPress={handleToggle} color={APP_ACCENT_COLOR}>
+            <Button
+              onPress={handleToggle}
+              modifiers={[tint(APP_ACCENT_COLOR)]}
+            >
               <HStack>
-                <Text color={APP_ACCENT_COLOR}>
+                <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
                   {isCompletedToday ? "Mark as Incomplete" : "Mark as Complete"}
                 </Text>
                 <Spacer />
               </HStack>
             </Button>
-            <Button onPress={handleEdit} color={APP_ACCENT_COLOR}>
+            <Button onPress={handleEdit} modifiers={[tint(APP_ACCENT_COLOR)]}>
               <HStack>
-                <Text color={APP_ACCENT_COLOR}>Edit habit</Text>
+                <Text modifiers={[foregroundStyle(APP_ACCENT_COLOR)]}>
+                  Edit habit
+                </Text>
                 <Spacer />
                 <Image systemName="chevron.right" size={14} color="secondary" />
               </HStack>
             </Button>
             <Button onPress={handleDelete}>
               <HStack>
-                <Text color="primary">Delete habit</Text>
+                <Text
+                  modifiers={[
+                    foregroundStyle({
+                      type: "hierarchical",
+                      style: "primary",
+                    }),
+                  ]}
+                >
+                  Delete habit
+                </Text>
                 <Spacer />
                 <Image systemName="chevron.right" size={14} color="secondary" />
               </HStack>
