@@ -1,5 +1,6 @@
 import {
   Button,
+  ContentUnavailableView,
   ContextMenu,
   Host,
   HStack,
@@ -10,15 +11,15 @@ import {
   Text,
 } from "@expo/ui/swift-ui";
 import {
-  buttonStyle,
   foregroundStyle,
   refreshable,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack } from "expo-router";
+import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Alert } from "react-native";
+import { Alert, PlatformColor, Pressable } from "react-native";
 import { APP_ACCENT_COLOR } from "../../components/app-colors";
 import {
   getTodayString,
@@ -38,14 +39,16 @@ export default function HomeScreen() {
   } = useHabits();
   const today = getTodayString();
   const [searchQuery, setSearchQuery] = useState("");
+  const trimmedSearchQuery = searchQuery.trim();
+  const hasSearchQuery = trimmedSearchQuery.length > 0;
 
-  const filteredHabits = searchQuery.trim()
+  const filteredHabits = hasSearchQuery
     ? habits.filter((h) =>
         h.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : habits;
 
-  const handleAddOpen = () => {
+  const handleOpenNewHabit = () => {
     router.push("/habit/new");
   };
 
@@ -91,11 +94,93 @@ export default function HomeScreen() {
     await reload();
   };
 
+  const renderHabitsSectionContent = () => {
+    if (!isLoaded) {
+      return <Text>Loading your habits...</Text>;
+    }
+
+    if (filteredHabits.length === 0) {
+      if (hasSearchQuery) {
+        return (
+          <ContentUnavailableView
+            description={`No habit matches "${trimmedSearchQuery}".`}
+            systemImage="magnifyingglass"
+            title="No Matching Habits"
+          />
+        );
+      }
+
+      return (
+        <ContentUnavailableView
+          description="Build momentum with one small daily habit. Tap + to add your first one."
+          systemImage="checkmark.circle"
+          title="No Habits Yet"
+        />
+      );
+    }
+
+    return filteredHabits.map((habit) => {
+      const checkedToday = hasCheckInToday(habit.checkins, today);
+      return (
+        <ContextMenu key={habit.id}>
+          <ContextMenu.Items>
+            <Button
+              label={checkedToday ? "Mark Incomplete" : "Mark Complete"}
+              onPress={() => handleToggle(habit.id)}
+              systemImage={checkedToday ? "circle" : "checkmark.circle"}
+            />
+            <Button
+              label="Delete"
+              onPress={() => handleDelete(habit.id, habit.name)}
+              systemImage="trash"
+            />
+          </ContextMenu.Items>
+          <ContextMenu.Trigger>
+            <Button
+              modifiers={[tint(PlatformColor("label"))]}
+              onPress={() => router.push(`/habit/${habit.id}`)}
+            >
+              <HStack spacing={10}>
+                <Button onPress={() => handleToggle(habit.id)}>
+                  <Image
+                    color={checkedToday ? APP_ACCENT_COLOR : "secondary"}
+                    size={22}
+                    systemName={
+                      checkedToday ? "checkmark.circle.fill" : "circle"
+                    }
+                  />
+                </Button>
+                <HStack spacing={10}>
+                  <Text>{habit.name}</Text>
+                  <Spacer />
+                  <Image
+                    color="secondary"
+                    size={14}
+                    systemName="chevron.right"
+                  />
+                </HStack>
+              </HStack>
+            </Button>
+          </ContextMenu.Trigger>
+        </ContextMenu>
+      );
+    });
+  };
+
   return (
     <>
       <Stack.Screen
         options={{
           title: "Practice",
+          headerRight: () => (
+            <Pressable
+              accessibilityLabel="Add habit"
+              accessibilityRole="button"
+              onPress={handleOpenNewHabit}
+            >
+              <SymbolView name="plus" />
+            </Pressable>
+          ),
           headerSearchBarOptions: {
             hideWhenScrolling: true,
             placeholder: "Search habits",
@@ -114,76 +199,7 @@ export default function HomeScreen() {
               )}
             </Section>
           )}
-          <Section title="Your Habits">
-            {isLoaded ? (
-              filteredHabits.map((habit) => {
-                const checkedToday = hasCheckInToday(habit.checkins, today);
-                return (
-                  <ContextMenu key={habit.id}>
-                    <ContextMenu.Items>
-                      <Button
-                        label={
-                          checkedToday ? "Mark Incomplete" : "Mark Complete"
-                        }
-                        onPress={() => handleToggle(habit.id)}
-                        systemImage={
-                          checkedToday ? "circle" : "checkmark.circle"
-                        }
-                      />
-                      <Button
-                        label="Delete"
-                        onPress={() => handleDelete(habit.id, habit.name)}
-                        systemImage="trash"
-                      />
-                    </ContextMenu.Items>
-                    <ContextMenu.Trigger>
-                      <Button
-                        modifiers={[buttonStyle("plain")]}
-                        onPress={() => router.push(`/habit/${habit.id}`)}
-                      >
-                        <HStack>
-                          <HStack spacing={10}>
-                            <Button onPress={() => handleToggle(habit.id)}>
-                              <Image
-                                color={
-                                  checkedToday ? APP_ACCENT_COLOR : "secondary"
-                                }
-                                size={22}
-                                systemName={
-                                  checkedToday
-                                    ? "checkmark.circle.fill"
-                                    : "circle"
-                                }
-                              />
-                            </Button>
-                            <Text>{habit.name}</Text>
-                          </HStack>
-                          <Spacer />
-                          <Image
-                            color="secondary"
-                            size={14}
-                            systemName="chevron.right"
-                          />
-                        </HStack>
-                      </Button>
-                    </ContextMenu.Trigger>
-                  </ContextMenu>
-                );
-              })
-            ) : (
-              <Text>Loading your habits...</Text>
-            )}
-            <Button onPress={handleAddOpen}>
-              <HStack spacing={10}>
-                <Image
-                  color={APP_ACCENT_COLOR}
-                  size={22}
-                  systemName="plus.circle.fill"
-                />
-                <Text modifiers={[tint(APP_ACCENT_COLOR)]}>Add Habit</Text>
-              </HStack>
-            </Button>
-          </Section>
+          <Section title="Your Habits">{renderHabitsSectionContent()}</Section>
         </List>
       </Host>
     </>

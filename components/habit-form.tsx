@@ -16,9 +16,11 @@ import {
   foregroundStyle,
   presentationDetents,
   presentationDragIndicator,
+  tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert } from "react-native";
+import { Alert, PlatformColor } from "react-native";
+import { APP_ACCENT_COLOR } from "./app-colors";
 import {
   getHabitCategory,
   HABIT_CATEGORIES,
@@ -186,7 +188,7 @@ export function HabitForm({
                     return (
                       <Button
                         key={category.id}
-                        modifiers={[buttonStyle("plain")]}
+                        modifiers={[tint(PlatformColor("label"))]}
                         onPress={() => {
                           setSelectedCategoryId(category.id);
                           setIsCategorySheetOpen(false);
@@ -196,7 +198,11 @@ export function HabitForm({
                           <Text>{category.label}</Text>
                           <Spacer />
                           {isSelected ? (
-                            <Image size={16} systemName="checkmark" />
+                            <Image
+                              modifiers={[tint(APP_ACCENT_COLOR)]}
+                              size={16}
+                              systemName="checkmark"
+                            />
                           ) : null}
                         </HStack>
                       </Button>
