@@ -81,6 +81,7 @@ export default function EditHabitScreen() {
               accessibilityLabel="Save changes"
               accessibilityRole="button"
               disabled={!submitFromHeader || isSaving}
+              hitSlop={8}
               onPress={handleHeaderSubmit}
             >
               {isSaving ? (

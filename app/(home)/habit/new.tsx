@@ -41,6 +41,7 @@ export default function NewHabitScreen() {
               accessibilityLabel="Add habit"
               accessibilityRole="button"
               disabled={!submitFromHeader || isSaving}
+              hitSlop={8}
               onPress={handleHeaderSubmit}
             >
               {isSaving ? (

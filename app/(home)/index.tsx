@@ -176,6 +176,7 @@ export default function HomeScreen() {
             <Pressable
               accessibilityLabel="Add habit"
               accessibilityRole="button"
+              hitSlop={8}
               onPress={handleOpenNewHabit}
             >
               <SymbolView name="plus" />
