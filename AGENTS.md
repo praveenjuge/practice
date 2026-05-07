@@ -113,3 +113,52 @@ Biome's linter will catch most issues automatically. Focus your attention on:
 ---
 
 Most formatting and common issues are automatically fixed by Biome. Run `bun x ultracite fix` before committing to ensure compliance.
+
+---
+
+## Release Process (App Store)
+
+This project ships to the App Store via EAS. Release config lives in `eas.json`, `app.json`, and `store.config.json`.
+
+### Release flow
+
+1. **Pre-flight**
+   - Ensure the working tree is clean and tests/lint pass: `bun x ultracite check` and `bun x tsc --noEmit`.
+   - Bump `expo.version` in `app.json` and mirror the same value in `package.json#version`.
+   - Update `apple.version` in `store.config.json` to match.
+   - Update `apple.info.en-US.releaseNotes` in `store.config.json` with the changelog for this version.
+
+2. **Commit and push**
+   - Commit all release changes (code, version bumps, metadata) in a single commit.
+   - Pushing directly to `main` is the house style for this repo.
+
+3. **Metadata push**
+   - `bun run metadata:push` (alias for `bun x eas metadata:push`).
+   - Prompts interactively for Apple ID login on first run per session. Cached afterwards.
+
+4. **Local build**
+   - `bun run build:local` (alias for `eas build --platform ios --local`).
+   - Requires working Xcode + signing credentials. Takes 10 to 20 minutes.
+   - Must be online because EAS assigns the build number remotely (`appVersionSource: remote` + `autoIncrement: true`).
+
+5. **Submit**
+   - `bun run build:submit` (alias for `eas submit --platform ios`).
+   - Uploads the local `.ipa` to App Store Connect.
+
+6. **Release**
+   - `automaticRelease: true` is set in `store.config.json`, so the version auto-releases after Apple approves review. No manual release step needed.
+
+### Gotchas
+
+- `promoText` in `store.config.json` has a **170 character max**. `metadata:push` will fail validation otherwise.
+- `description` has a 4000 character max, `keywords` must be a comma-joined string under 100 characters when serialized, `subtitle` is 30 characters max.
+- `buildNumber` in `ios/` is managed by EAS. Do not edit it manually.
+- `ITSAppUsesNonExemptEncryption: false` is already declared in `app.json`, so no export compliance prompt at submit time.
+- iCloud container (`iCloud.com.praveenjuge.practice`) is set to `Production`. It must exist and be enabled on the App ID in the Apple Developer account.
+- Apple ID auth prompts are interactive. If automating, set up an App Store Connect API key and export `ASC_API_KEY_*` env vars.
+
+### Versioning convention
+
+- Patch (`1.1.0` → `1.1.1`): bug fixes only, no user-visible behavior changes.
+- Minor (`1.1.0` → `1.2.0`): user-facing feature additions.
+- Major (`1.x.y` → `2.0.0`): breaking changes to data shape, iCloud schema migrations, or major UX overhauls.
