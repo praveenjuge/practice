@@ -14,9 +14,11 @@ import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useMemo } from "react";
 import { Alert } from "react-native";
 import { APP_ACCENT_COLOR } from "../../../components/app-colors";
+import { HabitStreakHistory } from "../../../components/habit-streak-history";
 import {
   getStreaks,
   getTodayString,
+  getYearHabitHistory,
   useHabits,
 } from "../../../components/habits-store";
 
@@ -27,6 +29,11 @@ export default function HabitDetailsScreen() {
   const habit = useMemo(
     () => habits.find((item) => item.id === habitId),
     [habits, habitId]
+  );
+  const today = getTodayString();
+  const historyWeeks = useMemo(
+    () => getYearHabitHistory(habit?.checkins ?? [], today),
+    [habit?.checkins, today]
   );
 
   if (!habit) {
@@ -55,7 +62,6 @@ export default function HabitDetailsScreen() {
     );
   }
 
-  const today = getTodayString();
   const streaks = getStreaks(habit.checkins, today);
   const isCompletedToday = habit.checkins.includes(today);
   const totalCheckins = habit.checkins.length;
@@ -139,6 +145,9 @@ export default function HabitDetailsScreen() {
               <Spacer />
               <Text modifiers={[secondaryStyle]}>{lastCheckin ?? "Never"}</Text>
             </HStack>
+          </Section>
+          <Section title="History">
+            <HabitStreakHistory weeks={historyWeeks} />
           </Section>
           <Section title="Actions">
             <Button modifiers={[tint(APP_ACCENT_COLOR)]} onPress={handleToggle}>

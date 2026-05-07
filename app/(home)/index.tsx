@@ -9,6 +9,7 @@ import {
   Section,
   Spacer,
   Text,
+  VStack,
 } from "@expo/ui/swift-ui";
 import {
   foregroundStyle,
@@ -22,10 +23,12 @@ import { useState } from "react";
 import { Alert, PlatformColor, Pressable } from "react-native";
 import { APP_ACCENT_COLOR } from "../../components/app-colors";
 import {
+  getRollingWeekCheckins,
   getTodayString,
   hasCheckInToday,
   useHabits,
 } from "../../components/habits-store";
+import { WeeklyStreakBoxes } from "../../components/weekly-streak-boxes";
 
 export default function HomeScreen() {
   const {
@@ -121,6 +124,8 @@ export default function HomeScreen() {
 
     return filteredHabits.map((habit) => {
       const checkedToday = hasCheckInToday(habit.checkins, today);
+      const weekDays = getRollingWeekCheckins(habit.checkins, today);
+      const openHabitDetail = () => router.push(`/habit/${habit.id}`);
       return (
         <ContextMenu key={habit.id}>
           <ContextMenu.Items>
@@ -138,7 +143,7 @@ export default function HomeScreen() {
           <ContextMenu.Trigger>
             <Button
               modifiers={[tint(PlatformColor("label"))]}
-              onPress={() => router.push(`/habit/${habit.id}`)}
+              onPress={openHabitDetail}
             >
               <HStack spacing={10}>
                 <Button onPress={() => handleToggle(habit.id)}>
@@ -150,15 +155,21 @@ export default function HomeScreen() {
                     }
                   />
                 </Button>
-                <HStack spacing={10}>
-                  <Text>{habit.name}</Text>
-                  <Spacer />
-                  <Image
-                    color="secondary"
-                    size={14}
-                    systemName="chevron.right"
+                <VStack alignment="leading" spacing={6}>
+                  <HStack spacing={10}>
+                    <Text>{habit.name}</Text>
+                    <Spacer />
+                    <Image
+                      color="secondary"
+                      size={14}
+                      systemName="chevron.right"
+                    />
+                  </HStack>
+                  <WeeklyStreakBoxes
+                    days={weekDays}
+                    onPress={openHabitDetail}
                   />
-                </HStack>
+                </VStack>
               </HStack>
             </Button>
           </ContextMenu.Trigger>

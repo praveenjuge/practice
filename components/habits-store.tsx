@@ -138,6 +138,131 @@ const streakFrom = (start: string, set: Set<string>) => {
 export const hasCheckInToday = (checkins: string[], today = getTodayString()) =>
   normalizeDateArray(checkins).includes(today);
 
+export interface RollingWeekDay {
+  completed: boolean;
+  date: string;
+}
+
+const ROLLING_WEEK_LENGTH = 7;
+
+/**
+ * Returns the last 7 calendar days ending with `today`, ordered from oldest
+ * to newest, with a `completed` flag derived from the provided check-ins.
+ *
+ * Days that fall outside the habit's lifetime will simply have no matching
+ * check-in and therefore resolve to `completed: false`.
+ */
+export const getRollingWeekCheckins = (
+  checkins: string[],
+  today = getTodayString()
+): RollingWeekDay[] => {
+  if (!isValidDateString(today)) {
+    return [];
+  }
+  const completedSet = new Set(normalizeDateArray(checkins));
+  const todayDate = parseDateString(today);
+  const days: RollingWeekDay[] = [];
+  for (let offset = ROLLING_WEEK_LENGTH - 1; offset >= 0; offset -= 1) {
+    const date = formatDate(addDays(todayDate, -offset));
+    days.push({ date, completed: completedSet.has(date) });
+  }
+  return days;
+};
+
+export interface HabitHistoryDay {
+  completed: boolean;
+  date: string;
+  inRange: boolean;
+}
+
+export interface HabitHistoryWeek {
+  days: HabitHistoryDay[];
+  monthLabel?: string;
+  weekStart: string;
+}
+
+const HISTORY_WINDOW_DAYS = 365;
+const DAYS_PER_WEEK = 7;
+const MIN_WEEKS_BETWEEN_LABELS = 3;
+const SHORT_MONTH_NAMES = [
+  "Jan",
+  "Feb",
+  "Mar",
+  "Apr",
+  "May",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Oct",
+  "Nov",
+  "Dec",
+] as const;
+
+/**
+ * Returns GitHub-style week columns covering the last 365 days ending with
+ * `today`. Each column is Sunday-anchored and contains 7 days ordered top to
+ * bottom. Cells outside the 365-day window are included for alignment but are
+ * flagged with `inRange: false` and always resolve to `completed: false`.
+ *
+ * Month labels are attached to the first week column of each new month, with a
+ * minimum spacing between labels to avoid visual crowding.
+ */
+export const getYearHabitHistory = (
+  checkins: string[],
+  today = getTodayString()
+): HabitHistoryWeek[] => {
+  if (!isValidDateString(today)) {
+    return [];
+  }
+
+  const completedSet = new Set(normalizeDateArray(checkins));
+  const todayDate = parseDateString(today);
+  const windowStart = addDays(todayDate, -(HISTORY_WINDOW_DAYS - 1));
+  const firstColumnStart = addDays(windowStart, -windowStart.getDay());
+  const totalWeeks =
+    Math.floor(diffInDays(todayDate, firstColumnStart) / DAYS_PER_WEEK) + 1;
+
+  const weeks: HabitHistoryWeek[] = [];
+  let lastLabelWeekIndex = -MIN_WEEKS_BETWEEN_LABELS;
+  let previousMonth = -1;
+
+  for (let weekIndex = 0; weekIndex < totalWeeks; weekIndex += 1) {
+    const columnStart = addDays(firstColumnStart, weekIndex * DAYS_PER_WEEK);
+    const days: HabitHistoryDay[] = [];
+    for (let dayOffset = 0; dayOffset < DAYS_PER_WEEK; dayOffset += 1) {
+      const cellDate = addDays(columnStart, dayOffset);
+      const formatted = formatDate(cellDate);
+      const daysFromToday = diffInDays(todayDate, cellDate);
+      const inRange = daysFromToday >= 0 && daysFromToday < HISTORY_WINDOW_DAYS;
+      days.push({
+        completed: inRange && completedSet.has(formatted),
+        date: formatted,
+        inRange,
+      });
+    }
+
+    const columnMonth = columnStart.getMonth();
+    const isNewMonth = columnMonth !== previousMonth;
+    const isSpacedEnough =
+      weekIndex - lastLabelWeekIndex >= MIN_WEEKS_BETWEEN_LABELS;
+    let monthLabel: string | undefined;
+    if (isNewMonth && isSpacedEnough) {
+      monthLabel = SHORT_MONTH_NAMES[columnMonth];
+      lastLabelWeekIndex = weekIndex;
+    }
+    previousMonth = columnMonth;
+
+    weeks.push({
+      days,
+      monthLabel,
+      weekStart: formatDate(columnStart),
+    });
+  }
+
+  return weeks;
+};
+
 export const getStreaks = (
   checkins: string[],
   today = getTodayString()

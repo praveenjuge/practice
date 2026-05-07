@@ -1,14 +1,14 @@
 {
   "configVersion": 0,
   "apple": {
-    "version": "1.0.1",
+    "version": "1.1.0",
     "copyright": "Praveen Juge",
     "release": {
       "automaticRelease": true
     },
     "info": {
       "en-US": {
-        "description": "Practice is a beautifully simple habit tracker designed to help you build consistency with daily check-ins and streaks.\n\nCreate habits in seconds, organize them with categories, and edit them anytime as your routines evolve.\n\nKEY FEATURES\n- Simple daily check-ins\n- Streaks (current and highest) and progress details per habit\n- Habit categories with searchable picker\n- Edit habit name and category anytime\n- Search habits on the home screen\n- Helpful loading and empty states\n- iCloud Sync\n- Native iOS design\n- Privacy-first\n\nHOW IT WORKS\n1. Add a habit you want to build\n2. Choose a category that matches your goal\n3. Check it off each day you complete it\n4. Open the habit to review streaks and progress\n5. Update or refine habits as your routine changes\n\nPractice is perfect for:\n- Daily exercise\n- Reading\n- Meditation\n- Learning a language\n- Any habit you want to make stick\n\nThe key to lasting habits is consistency. Practice gives you just enough tracking to stay accountable without becoming a chore.",
+        "description": "Practice is a beautifully simple habit tracker designed to help you build consistency with daily check-ins and streaks.\n\nCreate habits in seconds, organize them with categories, and edit them anytime as your routines evolve.\n\nKEY FEATURES\n- Simple daily check-ins\n- Streaks (current and highest) and progress details per habit\n- Full-year streak history in a GitHub-style grid\n- Habit categories with searchable picker\n- Edit habit name and category anytime\n- Search habits on the home screen\n- Helpful loading and empty states\n- iCloud Sync\n- Native iOS design\n- Privacy-first\n\nHOW IT WORKS\n1. Add a habit you want to build\n2. Choose a category that matches your goal\n3. Check it off each day you complete it\n4. Open the habit to review streaks, progress, and your full-year history\n5. Update or refine habits as your routine changes\n\nPractice is perfect for:\n- Daily exercise\n- Reading\n- Meditation\n- Learning a language\n- Any habit you want to make stick\n\nThe key to lasting habits is consistency. Practice gives you just enough tracking to stay accountable without becoming a chore.",
         "keywords": [
           "habit",
           "tracker",
@@ -22,7 +22,8 @@
           "focus",
           "motivation"
         ],
-        "promoText": "Build better routines with categorized habits, quick daily check-ins, and streak tracking. Create, edit, and search habits in a native iOS app synced through iCloud.",
+        "promoText": "Build better routines with categorized habits, quick daily check-ins, and a full-year streak history. Create, edit, and search habits in a native iOS app synced through iCloud.",
+        "releaseNotes": "New in this version:\n- Full-year streak history on each habit in a GitHub-style grid\n- Scrolls horizontally so you can look back across the year\n- Month labels help you find past stretches at a glance\n\nThanks for using Practice!",
         "supportUrl": "https://praveenjuge.com/practice/privacy/",
         "title": "Practice: Habit Tracker",
         "subtitle": "Build Streaks Daily",

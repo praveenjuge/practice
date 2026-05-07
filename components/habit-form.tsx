@@ -74,12 +74,11 @@ export function HabitForm({
     const filteredCategories =
       normalizedQuery.length === 0
         ? HABIT_CATEGORIES
-        : HABIT_CATEGORIES.filter((category) => {
-            return (
+        : HABIT_CATEGORIES.filter(
+            (category) =>
               category.label.toLowerCase().includes(normalizedQuery) ||
               category.group.toLowerCase().includes(normalizedQuery)
-            );
-          });
+          );
 
     return HABIT_CATEGORY_GROUP_ORDER.map((group) => ({
       group,
@@ -130,7 +129,7 @@ export function HabitForm({
           <TextField
             defaultValue={initialName}
             key={`habit-name-${initialName}`}
-            onChangeText={setName}
+            onValueChange={setName}
             placeholder="Habit name"
           />
           <Button
@@ -172,7 +171,7 @@ export function HabitForm({
               <TextField
                 defaultValue=""
                 key={`category-search-${searchInputKey}`}
-                onChangeText={setSearchQuery}
+                onValueChange={setSearchQuery}
                 placeholder="Search categories"
               />
             </Section>
