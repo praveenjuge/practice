@@ -140,6 +140,7 @@ This project ships to the App Store via EAS. Release config lives in `eas.json`,
    - `bun run build:local` (alias for `eas build --platform ios --local`).
    - Requires working Xcode + signing credentials. Takes 10 to 20 minutes.
    - Must be online because EAS assigns the build number remotely (`appVersionSource: remote` + `autoIncrement: true`).
+   - **The build will prompt: `Do you want to log in to your Apple account? (Y/n)`.** This is optional — EAS already has remote iOS credentials cached. Answer `n` to skip the Apple login and let the build proceed non-interactively. Pipe the answer in: `printf 'n\n' | bun run build:local`.
 
 5. **Submit**
    - `bun run build:submit` (alias for `eas submit --platform ios`).
