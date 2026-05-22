@@ -1,9 +1,9 @@
+import { Slot } from "expo-router";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
-} from "@react-navigation/native";
-import { Slot } from "expo-router";
+} from "expo-router/react-navigation";
 import { StatusBar } from "expo-status-bar";
 import { APP_ACCENT_COLOR } from "../components/app-colors";
 import { HabitsProvider } from "../components/habits-store";

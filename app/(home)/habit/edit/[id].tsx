@@ -48,7 +48,7 @@ export default function EditHabitScreen() {
     return (
       <>
         <Stack.Screen options={{ title: "Edit Habit" }} />
-        <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
+        <Host style={{ flex: 1 }}>
           <List>
             <HStack>
               <Text>Not found</Text>

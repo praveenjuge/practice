@@ -7,7 +7,6 @@ import {
   Image,
   List,
   Section,
-  Spacer,
   Text,
   VStack,
 } from "@expo/ui/swift-ui";
@@ -124,7 +123,7 @@ export default function HomeScreen() {
 
     return filteredHabits.map((habit) => {
       const checkedToday = hasCheckInToday(habit.checkins, today);
-      const weekDays = getRollingWeekCheckins(habit.checkins, today);
+      const weekDays = getRollingWeekCheckins(habit.checkins, today, 30);
       const openHabitDetail = () => router.push(`/habit/${habit.id}`);
       return (
         <ContextMenu key={habit.id}>
@@ -156,15 +155,7 @@ export default function HomeScreen() {
                   />
                 </Button>
                 <VStack alignment="leading" spacing={6}>
-                  <HStack spacing={10}>
-                    <Text>{habit.name}</Text>
-                    <Spacer />
-                    <Image
-                      color="secondary"
-                      size={14}
-                      systemName="chevron.right"
-                    />
-                  </HStack>
+                  <Text>{habit.name}</Text>
                   <WeeklyStreakBoxes
                     days={weekDays}
                     onPress={openHabitDetail}
@@ -200,7 +191,7 @@ export default function HomeScreen() {
           },
         }}
       />
-      <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
+      <Host style={{ flex: 1 }}>
         <List modifiers={[refreshable(handleRefresh)]}>
           {isCloudAvailable ? null : (
             <Section title="Sync">

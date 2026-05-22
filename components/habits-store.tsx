@@ -146,23 +146,25 @@ export interface RollingWeekDay {
 const ROLLING_WEEK_LENGTH = 7;
 
 /**
- * Returns the last 7 calendar days ending with `today`, ordered from oldest
- * to newest, with a `completed` flag derived from the provided check-ins.
+ * Returns the last `length` calendar days ending with `today`, ordered from
+ * oldest to newest, with a `completed` flag derived from the provided
+ * check-ins.
  *
  * Days that fall outside the habit's lifetime will simply have no matching
  * check-in and therefore resolve to `completed: false`.
  */
 export const getRollingWeekCheckins = (
   checkins: string[],
-  today = getTodayString()
+  today = getTodayString(),
+  length = ROLLING_WEEK_LENGTH
 ): RollingWeekDay[] => {
-  if (!isValidDateString(today)) {
+  if (!isValidDateString(today) || length <= 0) {
     return [];
   }
   const completedSet = new Set(normalizeDateArray(checkins));
   const todayDate = parseDateString(today);
   const days: RollingWeekDay[] = [];
-  for (let offset = ROLLING_WEEK_LENGTH - 1; offset >= 0; offset -= 1) {
+  for (let offset = length - 1; offset >= 0; offset -= 1) {
     const date = formatDate(addDays(todayDate, -offset));
     days.push({ date, completed: completedSet.has(date) });
   }

@@ -1,6 +1,7 @@
-import { HStack, RoundedRectangle } from "@expo/ui/swift-ui";
+import { HStack, RoundedRectangle, ScrollView } from "@expo/ui/swift-ui";
 import {
   accessibilityLabel,
+  defaultScrollAnchor,
   foregroundStyle,
   frame,
   onTapGesture,
@@ -30,20 +31,27 @@ export function WeeklyStreakBoxes({ days, onPress }: WeeklyStreakBoxesProps) {
   const label = `Last ${days.length} days: ${completedCount} completed, ${missedCount} missed.`;
 
   return (
-    <HStack
-      modifiers={[accessibilityLabel(label), onTapGesture(onPress)]}
-      spacing={BOX_SPACING}
+    <ScrollView
+      axes="horizontal"
+      modifiers={[
+        accessibilityLabel(label),
+        defaultScrollAnchor("trailing"),
+        onTapGesture(onPress),
+      ]}
+      showsIndicators={false}
     >
-      {days.map((day) => (
-        <RoundedRectangle
-          cornerRadius={BOX_CORNER_RADIUS}
-          key={day.date}
-          modifiers={[
-            foregroundStyle(day.completed ? APP_ACCENT_COLOR : MISSED_COLOR),
-            frame({ width: BOX_WIDTH, height: BOX_HEIGHT }),
-          ]}
-        />
-      ))}
-    </HStack>
+      <HStack spacing={BOX_SPACING}>
+        {days.map((day) => (
+          <RoundedRectangle
+            cornerRadius={BOX_CORNER_RADIUS}
+            key={day.date}
+            modifiers={[
+              foregroundStyle(day.completed ? APP_ACCENT_COLOR : MISSED_COLOR),
+              frame({ width: BOX_WIDTH, height: BOX_HEIGHT }),
+            ]}
+          />
+        ))}
+      </HStack>
+    </ScrollView>
   );
 }

@@ -1,7 +1,7 @@
 {
   "configVersion": 0,
   "apple": {
-    "version": "1.1.0",
+    "version": "1.2.0",
     "copyright": "Praveen Juge",
     "release": {
       "automaticRelease": true
@@ -23,7 +23,7 @@
           "motivation"
         ],
         "promoText": "Build better routines with categorized habits, quick daily check-ins, and a full-year streak history in a native iOS app with iCloud sync.",
-        "releaseNotes": "New in this version:\n- Full-year streak history on each habit in a GitHub-style grid\n- Scrolls horizontally so you can look back across the year\n- Month labels help you find past stretches at a glance\n\nThanks for using Practice!",
+        "releaseNotes": "New in this version:\n- The home list now shows the last 30 days for each habit, scrollable horizontally so you can look back across the month\n- Tapping the + button now opens the new habit sheet with the name field already focused\n- Cleaner row layout with the chevron removed\n- Bug fixes: the new habit sheet now reliably shows its inputs and the large title no longer overlaps content\n\nThanks for using Practice!",
         "supportUrl": "https://praveenjuge.com/practice/privacy/",
         "title": "Practice: Habit Tracker",
         "subtitle": "Build Streaks Daily",

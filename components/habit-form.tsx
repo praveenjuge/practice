@@ -10,6 +10,7 @@ import {
   Spacer,
   Text,
   TextField,
+  useNativeState,
 } from "@expo/ui/swift-ui";
 import {
   buttonStyle,
@@ -41,6 +42,7 @@ interface GroupedCategories {
 }
 
 interface HabitFormProps {
+  autoFocusName?: boolean;
   initialCategoryId?: string | null;
   initialName: string;
   onSavingChange?: (isSaving: boolean) => void;
@@ -51,7 +53,33 @@ interface HabitFormProps {
   submitLabel: string;
 }
 
+interface NativeTextInputProps {
+  autoFocus?: boolean;
+  initialValue: string;
+  onTextChange: (value: string) => void;
+  placeholder: string;
+}
+
+function NativeTextInput({
+  autoFocus,
+  initialValue,
+  onTextChange,
+  placeholder,
+}: NativeTextInputProps) {
+  const text = useNativeState(initialValue);
+
+  return (
+    <TextField
+      autoFocus={autoFocus}
+      onTextChange={onTextChange}
+      placeholder={placeholder}
+      text={text}
+    />
+  );
+}
+
 export function HabitForm({
+  autoFocusName,
   initialName,
   initialCategoryId,
   submitErrorTitle,
@@ -123,13 +151,14 @@ export function HabitForm({
   }, [handleSubmit, onSubmitReady]);
 
   return (
-    <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
+    <Host style={{ flex: 1 }}>
       <List>
         <Section title="Habit">
-          <TextField
-            defaultValue={initialName}
+          <NativeTextInput
+            autoFocus={autoFocusName}
+            initialValue={initialName}
             key={`habit-name-${initialName}`}
-            onValueChange={setName}
+            onTextChange={setName}
             placeholder="Habit name"
           />
           <Button
@@ -168,10 +197,10 @@ export function HabitForm({
         >
           <List>
             <Section title="Select Category">
-              <TextField
-                defaultValue=""
+              <NativeTextInput
+                initialValue=""
                 key={`category-search-${searchInputKey}`}
-                onValueChange={setSearchQuery}
+                onTextChange={setSearchQuery}
                 placeholder="Search categories"
               />
             </Section>

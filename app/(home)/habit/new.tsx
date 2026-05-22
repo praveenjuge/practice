@@ -54,6 +54,7 @@ export default function NewHabitScreen() {
         }}
       />
       <HabitForm
+        autoFocusName
         initialName=""
         onSavingChange={setIsSaving}
         onSubmit={handleSubmit}

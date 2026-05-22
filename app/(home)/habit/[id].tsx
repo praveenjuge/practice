@@ -40,7 +40,7 @@ export default function HabitDetailsScreen() {
     return (
       <>
         <Stack.Screen options={{ title: "Habit" }} />
-        <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
+        <Host style={{ flex: 1 }}>
           <List>
             <HStack>
               <Text>Not found</Text>
@@ -120,7 +120,7 @@ export default function HabitDetailsScreen() {
       <Stack.Screen
         options={{ title: habit.name, headerBackButtonDisplayMode: "minimal" }}
       />
-      <Host matchContents style={{ flex: 1 }} useViewportSizeMeasurement>
+      <Host style={{ flex: 1 }}>
         <List>
           <Section title="Streaks">
             <HStack>
