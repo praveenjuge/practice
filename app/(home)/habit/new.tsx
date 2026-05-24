@@ -1,7 +1,5 @@
 import { router, Stack } from "expo-router";
-import { SymbolView } from "expo-symbols";
 import { useCallback, useState } from "react";
-import { ActivityIndicator, Pressable } from "react-native";
 import { HabitForm, type HabitFormInput } from "../../../components/habit-form";
 import { useHabits } from "../../../components/habits-store";
 
@@ -30,29 +28,24 @@ export default function NewHabitScreen() {
     );
   }, []);
 
+  const isHeaderDisabled = !submitFromHeader || isSaving;
+
   return (
     <>
       <Stack.Screen
         options={{
           title: "New Habit",
           headerLargeTitleEnabled: false,
-          headerRight: () => (
-            <Pressable
-              accessibilityLabel="Add habit"
-              accessibilityRole="button"
-              disabled={!submitFromHeader || isSaving}
-              hitSlop={8}
-              onPress={handleHeaderSubmit}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" />
-              ) : (
-                <SymbolView name="checkmark" />
-              )}
-            </Pressable>
-          ),
         }}
       />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          disabled={isHeaderDisabled}
+          icon="checkmark"
+          onPress={handleHeaderSubmit}
+          variant="done"
+        />
+      </Stack.Toolbar>
       <HabitForm
         autoFocusName
         initialName=""

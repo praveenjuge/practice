@@ -1,9 +1,7 @@
 import { Host, HStack, List, Spacer, Text } from "@expo/ui/swift-ui";
 import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { SymbolView } from "expo-symbols";
 import { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, Pressable } from "react-native";
 import {
   HabitForm,
   type HabitFormInput,
@@ -70,29 +68,24 @@ export default function EditHabitScreen() {
     );
   }
 
+  const isHeaderDisabled = !submitFromHeader || isSaving;
+
   return (
     <>
       <Stack.Screen
         options={{
           title: "Edit Habit",
           headerLargeTitleEnabled: false,
-          headerRight: () => (
-            <Pressable
-              accessibilityLabel="Save changes"
-              accessibilityRole="button"
-              disabled={!submitFromHeader || isSaving}
-              hitSlop={8}
-              onPress={handleHeaderSubmit}
-            >
-              {isSaving ? (
-                <ActivityIndicator size="small" />
-              ) : (
-                <SymbolView name="checkmark" />
-              )}
-            </Pressable>
-          ),
         }}
       />
+      <Stack.Toolbar placement="right">
+        <Stack.Toolbar.Button
+          disabled={isHeaderDisabled}
+          icon="checkmark"
+          onPress={handleHeaderSubmit}
+          variant="done"
+        />
+      </Stack.Toolbar>
       <HabitForm
         initialCategoryId={habit.categoryId}
         initialName={habit.name}
