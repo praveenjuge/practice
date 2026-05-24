@@ -1,6 +1,6 @@
 import { useAuth } from "@clerk/expo";
 import { AuthView } from "@clerk/expo/native";
-import { Button, Host, Spacer, Text, VStack } from "@expo/ui/swift-ui";
+import { Button, Host, HStack, Spacer, Text, VStack } from "@expo/ui/swift-ui";
 import {
   buttonStyle,
   controlSize,
@@ -8,10 +8,11 @@ import {
   foregroundStyle,
   multilineTextAlignment,
   padding,
+  tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { router, Stack } from "expo-router";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { PlatformColor, View } from "react-native";
 
 export default function SignInScreen() {
   const { isSignedIn } = useAuth({ treatPendingAsSignedOut: false });
@@ -61,10 +62,19 @@ export default function SignInScreen() {
             </Text>
           </VStack>
           <Button
-            label="Continue"
-            modifiers={[buttonStyle("borderedProminent"), controlSize("large")]}
+            modifiers={[
+              buttonStyle("borderedProminent"),
+              controlSize("large"),
+              tint(PlatformColor("label")),
+            ]}
             onPress={openAuthView}
-          />
+          >
+            <HStack alignment="center" spacing={10}>
+              <Spacer />
+              <Text>Continue</Text>
+              <Spacer />
+            </HStack>
+          </Button>
           <Spacer />
         </VStack>
       </Host>
