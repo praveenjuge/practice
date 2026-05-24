@@ -1,3 +1,5 @@
+import { useAuth } from "@clerk/expo";
+import { UserButton } from "@clerk/expo/native";
 import {
   Button,
   ContentUnavailableView,
@@ -17,13 +19,11 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack } from "expo-router";
-import { SymbolView } from "expo-symbols";
 import { useState } from "react";
-import { Alert, PlatformColor, Pressable } from "react-native";
+import { Alert, PlatformColor, View } from "react-native";
 import { APP_ACCENT_COLOR } from "../../components/app-colors";
 import {
   getRollingWeekCheckins,
-  getTodayString,
   hasCheckInToday,
   useHabits,
 } from "../../components/habits-store";
@@ -33,13 +33,16 @@ export default function HomeScreen() {
   const {
     habits,
     isLoaded,
-    isCloudAvailable,
     error,
+    authPromptVisible,
+    mode,
+    syncState,
+    today,
     toggleCheckInToday,
     deleteHabit,
     reload,
   } = useHabits();
-  const today = getTodayString();
+  const { isSignedIn } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const trimmedSearchQuery = searchQuery.trim();
   const hasSearchQuery = trimmedSearchQuery.length > 0;
@@ -52,6 +55,10 @@ export default function HomeScreen() {
 
   const handleOpenNewHabit = () => {
     router.push("/habit/new");
+  };
+
+  const handleOpenSignIn = () => {
+    router.push("/sign-in");
   };
 
   const showActionError = (title: string, error: unknown) => {
@@ -174,16 +181,6 @@ export default function HomeScreen() {
       <Stack.Screen
         options={{
           title: "Practice",
-          headerRight: () => (
-            <Pressable
-              accessibilityLabel="Add habit"
-              accessibilityRole="button"
-              hitSlop={8}
-              onPress={handleOpenNewHabit}
-            >
-              <SymbolView name="plus" />
-            </Pressable>
-          ),
           headerSearchBarOptions: {
             hideWhenScrolling: true,
             placeholder: "Search habits",
@@ -191,17 +188,55 @@ export default function HomeScreen() {
           },
         }}
       />
+      <Stack.Toolbar placement="right">
+        {isSignedIn ? (
+          <Stack.Toolbar.View>
+            <View
+              style={{
+                width: 28,
+                height: 28,
+                borderRadius: 14,
+                overflow: "hidden",
+              }}
+            >
+              <UserButton />
+            </View>
+          </Stack.Toolbar.View>
+        ) : null}
+        <Stack.Toolbar.Button icon="plus" onPress={handleOpenNewHabit} />
+      </Stack.Toolbar>
       <Host style={{ flex: 1 }}>
         <List modifiers={[refreshable(handleRefresh)]}>
-          {isCloudAvailable ? null : (
-            <Section title="Sync">
-              {error ? (
-                <Text modifiers={[foregroundStyle("red")]}>{error}</Text>
-              ) : (
-                <Text>iCloud is unavailable on this device.</Text>
-              )}
+          {authPromptVisible ? (
+            <Section title="Sync Online">
+              <Text>Local habits stay on this device.</Text>
+              <Button
+                modifiers={[tint(APP_ACCENT_COLOR)]}
+                onPress={handleOpenSignIn}
+              >
+                <Text>Create account to sync</Text>
+              </Button>
             </Section>
-          )}
+          ) : null}
+          {mode === "signedIn" && syncState !== "online" ? (
+            <Section title="Sync">
+              <Text>
+                {syncState === "claiming"
+                  ? "Moving your local habits online..."
+                  : "Unable to reach online storage."}
+              </Text>
+              {syncState === "offline" ? (
+                <Button modifiers={[tint(APP_ACCENT_COLOR)]} onPress={reload}>
+                  <Text>Retry</Text>
+                </Button>
+              ) : null}
+            </Section>
+          ) : null}
+          {error ? (
+            <Section title="Storage">
+              <Text modifiers={[foregroundStyle("red")]}>{error}</Text>
+            </Section>
+          ) : null}
           <Section title="Your Habits">{renderHabitsSectionContent()}</Section>
         </List>
       </Host>

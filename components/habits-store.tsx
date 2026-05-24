@@ -1,3 +1,6 @@
+import { useAuth } from "@clerk/expo";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
 import type React from "react";
 import {
   createContext,
@@ -14,8 +17,9 @@ import {
   CloudStorageErrorCode,
   CloudStorageProvider,
   CloudStorageScope,
-  useIsCloudAvailable,
 } from "react-native-cloud-storage";
+import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import {
   type HabitCategoryId,
   isValidHabitCategoryId,
@@ -39,17 +43,23 @@ export interface HabitStreaks {
   current: number;
 }
 
+type StorageMode = "anonymous" | "signedIn";
+type SyncState = "idle" | "claiming" | "online" | "offline" | "error";
+
 interface HabitsContextValue {
   addHabit: (input: {
     name: string;
     categoryId?: HabitCategoryId;
   }) => Promise<void>;
+  authPromptVisible: boolean;
   deleteHabit: (id: string) => Promise<void>;
   error: string | null;
   habits: Habit[];
-  isCloudAvailable: boolean;
   isLoaded: boolean;
+  mode: StorageMode;
   reload: () => Promise<void>;
+  syncState: SyncState;
+  today: string;
   toggleCheckInToday: (id: string) => Promise<void>;
   updateHabit: (
     id: string,
@@ -59,11 +69,13 @@ interface HabitsContextValue {
 
 const HabitsContext = createContext<HabitsContextValue | null>(null);
 
-const HABITS_DIR = "/practice";
+const DATABASE_NAME = "practice.db";
+const DATABASE_VERSION = 1;
 const HABITS_FILE = "/practice/habits.json";
-const FILE_VERSION = 2;
-const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const STORAGE_SCOPE = CloudStorageScope.AppData;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const CLAIM_KEY = "claim_key";
+const ICLOUD_IMPORT_DONE_KEY = "icloud_import_done_v1";
 export const MAX_HABIT_NAME_LENGTH = 120;
 
 const pad2 = (value: number) => String(value).padStart(2, "0");
@@ -71,7 +83,13 @@ const pad2 = (value: number) => String(value).padStart(2, "0");
 export const formatDate = (date: Date) =>
   `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
+const formatUtcDate = (date: Date) =>
+  `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(
+    date.getUTCDate()
+  )}`;
+
 export const getTodayString = (date = new Date()) => formatDate(date);
+const getUtcTodayString = (date = new Date()) => formatUtcDate(date);
 
 const parseDateString = (value: string) => {
   const [year, month, day] = value.split("-").map(Number);
@@ -93,14 +111,14 @@ const normalizeDateArray = (dates: string[]) => {
       unique.add(value);
     }
   }
-  return Array.from(unique);
+  return Array.from(unique).sort();
 };
 
 const normalizeHabitName = (name: unknown) => {
   if (typeof name !== "string") {
     throw new Error("Habit name is required.");
   }
-  const trimmed = name.trim();
+  const trimmed = name.trim().replace(/\s+/g, " ");
   if (!trimmed) {
     throw new Error("Habit name is required.");
   }
@@ -116,14 +134,21 @@ const normalizeHabitCategoryId = (categoryId?: unknown) => {
   if (!categoryId) {
     return resolveHabitCategoryId();
   }
-  if (typeof categoryId !== "string") {
-    throw new Error("Invalid habit category.");
-  }
-  if (!isValidHabitCategoryId(categoryId)) {
+  if (typeof categoryId !== "string" || !isValidHabitCategoryId(categoryId)) {
     throw new Error("Invalid habit category.");
   }
   return categoryId;
 };
+
+const createId = () =>
+  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+
+const createClaimKey = () => `claim-${createId()}`;
+
+const isNotFoundError = (error: unknown) =>
+  error instanceof CloudStorageError &&
+  (error.code === CloudStorageErrorCode.FILE_NOT_FOUND ||
+    error.code === CloudStorageErrorCode.DIRECTORY_NOT_FOUND);
 
 const streakFrom = (start: string, set: Set<string>) => {
   let count = 0;
@@ -143,20 +168,10 @@ export interface RollingWeekDay {
   date: string;
 }
 
-const ROLLING_WEEK_LENGTH = 7;
-
-/**
- * Returns the last `length` calendar days ending with `today`, ordered from
- * oldest to newest, with a `completed` flag derived from the provided
- * check-ins.
- *
- * Days that fall outside the habit's lifetime will simply have no matching
- * check-in and therefore resolve to `completed: false`.
- */
 export const getRollingWeekCheckins = (
   checkins: string[],
   today = getTodayString(),
-  length = ROLLING_WEEK_LENGTH
+  length = 7
 ): RollingWeekDay[] => {
   if (!isValidDateString(today) || length <= 0) {
     return [];
@@ -183,9 +198,6 @@ export interface HabitHistoryWeek {
   weekStart: string;
 }
 
-const HISTORY_WINDOW_DAYS = 365;
-const DAYS_PER_WEEK = 7;
-const MIN_WEEKS_BETWEEN_LABELS = 3;
 const SHORT_MONTH_NAMES = [
   "Jan",
   "Feb",
@@ -201,15 +213,6 @@ const SHORT_MONTH_NAMES = [
   "Dec",
 ] as const;
 
-/**
- * Returns GitHub-style week columns covering the last 365 days ending with
- * `today`. Each column is Sunday-anchored and contains 7 days ordered top to
- * bottom. Cells outside the 365-day window are included for alignment but are
- * flagged with `inRange: false` and always resolve to `completed: false`.
- *
- * Month labels are attached to the first week column of each new month, with a
- * minimum spacing between labels to avoid visual crowding.
- */
 export const getYearHabitHistory = (
   checkins: string[],
   today = getTodayString()
@@ -217,51 +220,39 @@ export const getYearHabitHistory = (
   if (!isValidDateString(today)) {
     return [];
   }
-
   const completedSet = new Set(normalizeDateArray(checkins));
   const todayDate = parseDateString(today);
-  const windowStart = addDays(todayDate, -(HISTORY_WINDOW_DAYS - 1));
+  const windowStart = addDays(todayDate, -364);
   const firstColumnStart = addDays(windowStart, -windowStart.getDay());
   const totalWeeks =
-    Math.floor(diffInDays(todayDate, firstColumnStart) / DAYS_PER_WEEK) + 1;
-
+    Math.floor(diffInDays(todayDate, firstColumnStart) / 7) + 1;
   const weeks: HabitHistoryWeek[] = [];
-  let lastLabelWeekIndex = -MIN_WEEKS_BETWEEN_LABELS;
+  let lastLabelWeekIndex = -3;
   let previousMonth = -1;
 
   for (let weekIndex = 0; weekIndex < totalWeeks; weekIndex += 1) {
-    const columnStart = addDays(firstColumnStart, weekIndex * DAYS_PER_WEEK);
+    const columnStart = addDays(firstColumnStart, weekIndex * 7);
     const days: HabitHistoryDay[] = [];
-    for (let dayOffset = 0; dayOffset < DAYS_PER_WEEK; dayOffset += 1) {
+    for (let dayOffset = 0; dayOffset < 7; dayOffset += 1) {
       const cellDate = addDays(columnStart, dayOffset);
       const formatted = formatDate(cellDate);
       const daysFromToday = diffInDays(todayDate, cellDate);
-      const inRange = daysFromToday >= 0 && daysFromToday < HISTORY_WINDOW_DAYS;
+      const inRange = daysFromToday >= 0 && daysFromToday < 365;
       days.push({
         completed: inRange && completedSet.has(formatted),
         date: formatted,
         inRange,
       });
     }
-
     const columnMonth = columnStart.getMonth();
-    const isNewMonth = columnMonth !== previousMonth;
-    const isSpacedEnough =
-      weekIndex - lastLabelWeekIndex >= MIN_WEEKS_BETWEEN_LABELS;
     let monthLabel: string | undefined;
-    if (isNewMonth && isSpacedEnough) {
+    if (columnMonth !== previousMonth && weekIndex - lastLabelWeekIndex >= 3) {
       monthLabel = SHORT_MONTH_NAMES[columnMonth];
       lastLabelWeekIndex = weekIndex;
     }
     previousMonth = columnMonth;
-
-    weeks.push({
-      days,
-      monthLabel,
-      weekStart: formatDate(columnStart),
-    });
+    weeks.push({ days, monthLabel, weekStart: formatDate(columnStart) });
   }
-
   return weeks;
 };
 
@@ -269,37 +260,29 @@ export const getStreaks = (
   checkins: string[],
   today = getTodayString()
 ): HabitStreaks => {
-  const normalized = normalizeDateArray(checkins);
-  if (normalized.length === 0 || !isValidDateString(today)) {
+  const sorted = normalizeDateArray(checkins);
+  if (sorted.length === 0 || !isValidDateString(today)) {
     return { current: 0, best: 0 };
   }
-
-  const sorted = normalized.slice().sort();
   const set = new Set(sorted);
   const latest = sorted.at(-1);
   if (!latest) {
     return { current: 0, best: 0 };
   }
-
-  let current = 0;
   const gap = diffInDays(parseDateString(today), parseDateString(latest));
+  let current = 0;
   if (gap === 0) {
     current = streakFrom(today, set);
   } else if (gap === 1) {
     current = streakFrom(latest, set);
   }
-
   let best = 0;
   for (const date of sorted) {
     const prev = formatDate(addDays(parseDateString(date), -1));
     if (!set.has(prev)) {
-      const length = streakFrom(date, set);
-      if (length > best) {
-        best = length;
-      }
+      best = Math.max(best, streakFrom(date, set));
     }
   }
-
   return { current, best };
 };
 
@@ -309,7 +292,6 @@ const sanitizeHabits = (raw: unknown) => {
   }
   const today = getTodayString();
   const sanitized: Habit[] = [];
-
   for (const item of raw) {
     if (!item || typeof item !== "object") {
       continue;
@@ -329,12 +311,9 @@ const sanitizeHabits = (raw: unknown) => {
         : today;
     const checkins = Array.isArray(record.checkins)
       ? normalizeDateArray(
-          record.checkins.filter(
-            (value): value is string => typeof value === "string"
-          )
+          record.checkins.filter((v): v is string => typeof v === "string")
         )
       : [];
-
     sanitized.push({
       id: record.id,
       name,
@@ -345,7 +324,6 @@ const sanitizeHabits = (raw: unknown) => {
       checkins,
     });
   }
-
   return sanitized;
 };
 
@@ -367,161 +345,343 @@ const parseHabitsContent = (content: string) => {
   return [];
 };
 
-const createId = () =>
-  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+const openDatabase = async () => {
+  const db = await openDatabaseAsync(DATABASE_NAME);
+  const current = await db.getFirstAsync<{ user_version: number }>(
+    "PRAGMA user_version"
+  );
+  if ((current?.user_version ?? 0) < DATABASE_VERSION) {
+    await db.execAsync(`
+      PRAGMA journal_mode = WAL;
+      CREATE TABLE IF NOT EXISTS habits (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        category_id TEXT NOT NULL,
+        created_at TEXT NOT NULL
+      );
+      CREATE TABLE IF NOT EXISTS checkins (
+        habit_id TEXT NOT NULL,
+        date TEXT NOT NULL,
+        PRIMARY KEY (habit_id, date)
+      );
+      CREATE TABLE IF NOT EXISTS app_meta (
+        key TEXT PRIMARY KEY NOT NULL,
+        value TEXT NOT NULL
+      );
+      PRAGMA user_version = ${DATABASE_VERSION};
+    `);
+  }
+  const claim = await db.getFirstAsync<{ value: string }>(
+    "SELECT value FROM app_meta WHERE key = ?",
+    CLAIM_KEY
+  );
+  if (!claim) {
+    await db.runAsync(
+      "INSERT INTO app_meta (key, value) VALUES (?, ?)",
+      CLAIM_KEY,
+      createClaimKey()
+    );
+  }
+  return db;
+};
 
-const isNotFoundError = (error: unknown) =>
-  error instanceof CloudStorageError &&
-  (error.code === CloudStorageErrorCode.FILE_NOT_FOUND ||
-    error.code === CloudStorageErrorCode.DIRECTORY_NOT_FOUND);
+const getMeta = (db: SQLiteDatabase, key: string) =>
+  db.getFirstAsync<{ value: string }>(
+    "SELECT value FROM app_meta WHERE key = ?",
+    key
+  );
+
+const setMeta = (db: SQLiteDatabase, key: string, value: string) =>
+  db.runAsync(
+    "INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)",
+    key,
+    value
+  );
+
+const readLocalHabits = async (db: SQLiteDatabase) => {
+  const habits = await db.getAllAsync<{
+    category_id: string;
+    created_at: string;
+    id: string;
+    name: string;
+  }>(
+    "SELECT id, name, category_id, created_at FROM habits ORDER BY created_at ASC"
+  );
+  const checkins = await db.getAllAsync<{ date: string; habit_id: string }>(
+    "SELECT habit_id, date FROM checkins ORDER BY date ASC"
+  );
+  const byHabit = new Map<string, string[]>();
+  for (const checkin of checkins) {
+    byHabit.set(checkin.habit_id, [
+      ...(byHabit.get(checkin.habit_id) ?? []),
+      checkin.date,
+    ]);
+  }
+  return habits.map((habit) => ({
+    id: habit.id,
+    name: habit.name,
+    categoryId: resolveHabitCategoryId(habit.category_id),
+    createdAt: habit.created_at,
+    checkins: byHabit.get(habit.id) ?? [],
+  }));
+};
+
+const insertLocalHabits = async (db: SQLiteDatabase, habits: Habit[]) => {
+  for (const habit of habits) {
+    await db.runAsync(
+      "INSERT OR IGNORE INTO habits (id, name, category_id, created_at) VALUES (?, ?, ?, ?)",
+      habit.id,
+      habit.name,
+      habit.categoryId,
+      habit.createdAt
+    );
+    for (const date of normalizeDateArray(habit.checkins)) {
+      await db.runAsync(
+        "INSERT OR IGNORE INTO checkins (habit_id, date) VALUES (?, ?)",
+        habit.id,
+        date
+      );
+    }
+  }
+};
+
+const clearLocalHabits = async (db: SQLiteDatabase) => {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync("DELETE FROM checkins");
+    await db.runAsync("DELETE FROM habits");
+    await setMeta(db, CLAIM_KEY, createClaimKey());
+  });
+};
+
+const readLegacyICloudHabits = async () => {
+  if (Platform.OS !== "ios") {
+    return [];
+  }
+  const exists = await CloudStorage.exists(HABITS_FILE, STORAGE_SCOPE);
+  if (!exists) {
+    return [];
+  }
+  try {
+    await CloudStorage.triggerSync(HABITS_FILE, STORAGE_SCOPE);
+  } catch {
+    // Best-effort only; the next read may still return the local iCloud copy.
+  }
+  return parseHabitsContent(
+    await CloudStorage.readFile(HABITS_FILE, STORAGE_SCOPE)
+  );
+};
+
+const useOnlineHabits = (enabled: boolean) =>
+  useQuery(api.habits.list, enabled ? {} : "skip");
+
+const normalizeOnlineHabits = (
+  habits: NonNullable<ReturnType<typeof useOnlineHabits>>
+): Habit[] =>
+  habits.map((habit) => ({
+    ...habit,
+    categoryId: resolveHabitCategoryId(habit.categoryId),
+  }));
+
+const toOnlineHabitId = (id: string) => id as Id<"habits">;
 
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
-  const isCloudAvailable = useIsCloudAvailable();
+  const { isSignedIn } = useAuth();
+  const { isAuthenticated, isLoading: convexAuthLoading } = useConvexAuth();
+  const mode: StorageMode = isSignedIn ? "signedIn" : "anonymous";
+  const onlineHabits = useOnlineHabits(isAuthenticated);
+  const createOnlineHabit = useMutation(api.habits.create);
+  const updateOnlineHabit = useMutation(api.habits.update);
+  const deleteOnlineHabit = useMutation(api.habits.remove);
+  const toggleOnlineCheckin = useMutation(api.habits.toggleCheckin);
+  const claimFromLocal = useMutation(api.habits.claimFromLocal);
 
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [isLoaded, setIsLoaded] = useState(false);
+  const [db, setDb] = useState<SQLiteDatabase | null>(null);
+  const [localHabits, setLocalHabits] = useState<Habit[]>([]);
+  const [localLoaded, setLocalLoaded] = useState(false);
+  const [legacyImportReady, setLegacyImportReady] = useState(false);
+  const [syncState, setSyncState] = useState<SyncState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const today = mode === "signedIn" ? getUtcTodayString() : getTodayString();
+
+  const loadLocal = useCallback(async (database: SQLiteDatabase) => {
+    setLocalHabits(await readLocalHabits(database));
+    setLocalLoaded(true);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-    const runIfActive = (task: () => void) => {
-      if (!cancelled) {
-        task();
-      }
-    };
-
-    const ensureStoragePath = async () => {
-      const dirExists = await CloudStorage.exists(HABITS_DIR, STORAGE_SCOPE);
-      if (!dirExists) {
-        await CloudStorage.mkdir(HABITS_DIR, STORAGE_SCOPE);
-      }
-    };
-
-    const writeEmptyFile = async () => {
-      await CloudStorage.writeFile(
-        HABITS_FILE,
-        JSON.stringify({ version: FILE_VERSION, habits: [] }),
-        STORAGE_SCOPE
-      );
-    };
-
-    const readFromCloud = async () => {
-      await ensureStoragePath();
-      const fileExists = await CloudStorage.exists(HABITS_FILE, STORAGE_SCOPE);
-      if (!fileExists) {
-        await writeEmptyFile();
-        return [];
-      }
-      try {
-        await CloudStorage.triggerSync(HABITS_FILE, STORAGE_SCOPE);
-      } catch {
-        // Ignore sync issues; readFile will still try to access the file.
-      }
-      try {
-        const content = await CloudStorage.readFile(HABITS_FILE, STORAGE_SCOPE);
-        return parseHabitsContent(content);
-      } catch (readError) {
-        if (isNotFoundError(readError)) {
-          await writeEmptyFile();
-          return [];
+    openDatabase()
+      .then(async (database) => {
+        if (cancelled) {
+          return;
         }
-        throw readError;
-      }
-    };
-
-    const ensureReady = async () => {
-      if (!isCloudAvailable) {
-        runIfActive(() => setIsLoaded(true));
-        return;
-      }
-
-      setIsLoaded(false);
-      try {
-        const nextHabits = await readFromCloud();
-        runIfActive(() => {
-          setHabits(nextHabits);
-          setError(null);
-        });
-      } catch {
-        runIfActive(() => setError("Unable to access iCloud right now."));
-      } finally {
-        runIfActive(() => setIsLoaded(true));
-      }
-    };
-
-    ensureReady();
-
+        setDb(database);
+        await loadLocal(database);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setError("Unable to open local storage.");
+          setLocalLoaded(true);
+          setLegacyImportReady(true);
+        }
+      });
     return () => {
       cancelled = true;
     };
-  }, [isCloudAvailable]);
+  }, [loadLocal]);
 
-  const saveHabits = useCallback(
-    async (nextHabits: Habit[]) => {
-      setHabits(nextHabits);
-      const payload = JSON.stringify({
-        version: FILE_VERSION,
-        habits: nextHabits,
-      });
-      if (!isCloudAvailable) {
-        setError("iCloud is unavailable. Changes stay on this device.");
+  useEffect(() => {
+    if (!db || legacyImportReady) {
+      return;
+    }
+    let cancelled = false;
+    const importLegacyData = async () => {
+      const done = await getMeta(db, ICLOUD_IMPORT_DONE_KEY);
+      if (done) {
+        setLegacyImportReady(true);
         return;
       }
       try {
-        const dirExists = await CloudStorage.exists(HABITS_DIR, STORAGE_SCOPE);
-        if (!dirExists) {
-          await CloudStorage.mkdir(HABITS_DIR, STORAGE_SCOPE);
+        const imported = await readLegacyICloudHabits();
+        await db.withTransactionAsync(async () => {
+          await insertLocalHabits(db, imported);
+        });
+        await setMeta(db, ICLOUD_IMPORT_DONE_KEY, "1");
+        if (!cancelled) {
+          await loadLocal(db);
         }
-        await CloudStorage.writeFile(HABITS_FILE, payload, STORAGE_SCOPE);
-        setError(null);
-      } catch (err) {
-        if (isNotFoundError(err)) {
-          try {
-            await CloudStorage.mkdir(HABITS_DIR, STORAGE_SCOPE);
-            await CloudStorage.writeFile(HABITS_FILE, payload, STORAGE_SCOPE);
-            setError(null);
-            return;
-          } catch {
-            setError("Unable to save changes to iCloud.");
-            return;
-          }
+      } catch (importError) {
+        if (!isNotFoundError(importError)) {
+          setError("Unable to import older iCloud habits.");
         }
-        setError("Unable to save changes to iCloud.");
+      } finally {
+        if (!cancelled) {
+          setLegacyImportReady(true);
+        }
       }
+    };
+    importLegacyData();
+    return () => {
+      cancelled = true;
+    };
+  }, [db, legacyImportReady, loadLocal]);
+
+  useEffect(() => {
+    if (
+      !(db && isAuthenticated && localLoaded && legacyImportReady) ||
+      localHabits.length === 0
+    ) {
+      return;
+    }
+    let cancelled = false;
+    const claim = async () => {
+      setSyncState("claiming");
+      try {
+        const claimKey =
+          (await getMeta(db, CLAIM_KEY))?.value ?? createClaimKey();
+        await claimFromLocal({ habits: localHabits, importKey: claimKey });
+        await clearLocalHabits(db);
+        if (!cancelled) {
+          setLocalHabits([]);
+          setError(null);
+          setSyncState("online");
+        }
+      } catch {
+        if (!cancelled) {
+          setError(
+            "Unable to store local habits online. Your local data is still safe."
+          );
+          setSyncState("error");
+        }
+      }
+    };
+    claim();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    claimFromLocal,
+    db,
+    isAuthenticated,
+    legacyImportReady,
+    localHabits,
+    localLoaded,
+  ]);
+
+  useEffect(() => {
+    if (mode === "anonymous") {
+      setSyncState("idle");
+      setError(null);
+      return;
+    }
+    if (
+      convexAuthLoading ||
+      syncState === "claiming" ||
+      syncState === "error"
+    ) {
+      return;
+    }
+    setSyncState(onlineHabits ? "online" : "offline");
+  }, [convexAuthLoading, mode, onlineHabits, syncState]);
+
+  const reload = useCallback(async () => {
+    if (mode === "anonymous" && db) {
+      await loadLocal(db);
+    }
+  }, [db, loadLocal, mode]);
+
+  const saveLocalHabits = useCallback(
+    async (nextHabits: Habit[]) => {
+      if (!db) {
+        throw new Error("Local storage is not ready.");
+      }
+      await db.withTransactionAsync(async () => {
+        await db.runAsync("DELETE FROM checkins");
+        await db.runAsync("DELETE FROM habits");
+        await insertLocalHabits(db, nextHabits);
+      });
+      setLocalHabits(nextHabits);
     },
-    [isCloudAvailable]
+    [db]
   );
 
   const addHabit = useCallback(
     async (input: { name: string; categoryId?: HabitCategoryId }) => {
-      if (!input || typeof input !== "object") {
-        throw new Error("Habit details are required.");
+      const name = normalizeHabitName(input.name);
+      const categoryId = normalizeHabitCategoryId(input.categoryId);
+      if (mode === "signedIn") {
+        await createOnlineHabit({
+          name,
+          categoryId,
+          createdAt: getUtcTodayString(),
+        });
+        return;
       }
-      const trimmed = normalizeHabitName(input.name);
-      const today = getTodayString();
-      const nextHabits = [
-        ...habits,
+      await saveLocalHabits([
+        ...localHabits,
         {
           id: createId(),
-          name: trimmed,
-          categoryId: normalizeHabitCategoryId(input.categoryId),
-          createdAt: today,
+          name,
+          categoryId,
+          createdAt: getTodayString(),
           checkins: [],
         },
-      ];
-      await saveHabits(nextHabits);
+      ]);
     },
-    [habits, saveHabits]
+    [createOnlineHabit, localHabits, mode, saveLocalHabits]
   );
 
   const toggleCheckInToday = useCallback(
     async (id: string) => {
-      if (!id) {
-        throw new Error("Habit ID is required.");
+      if (mode === "signedIn") {
+        await toggleOnlineCheckin({
+          habitId: toOnlineHabitId(id),
+          date: getUtcTodayString(),
+        });
+        return;
       }
-      const today = getTodayString();
       let didUpdate = false;
-      const nextHabits = habits.map((habit) => {
+      const nextHabits = localHabits.map((habit) => {
         if (habit.id !== id) {
           return habit;
         }
@@ -537,9 +697,9 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       if (!didUpdate) {
         throw new Error("Habit not found.");
       }
-      await saveHabits(nextHabits);
+      await saveLocalHabits(nextHabits);
     },
-    [habits, saveHabits]
+    [localHabits, mode, saveLocalHabits, today, toggleOnlineCheckin]
   );
 
   const updateHabit = useCallback(
@@ -547,83 +707,64 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       id: string,
       input: { name: string; categoryId: HabitCategoryId }
     ) => {
-      if (!id) {
-        throw new Error("Habit ID is required.");
-      }
-      if (!input || typeof input !== "object") {
-        throw new Error("Habit details are required.");
-      }
-      const trimmed = normalizeHabitName(input.name);
+      const name = normalizeHabitName(input.name);
       const categoryId = normalizeHabitCategoryId(input.categoryId);
+      if (mode === "signedIn") {
+        await updateOnlineHabit({
+          habitId: toOnlineHabitId(id),
+          name,
+          categoryId,
+        });
+        return;
+      }
       let didUpdate = false;
-      const nextHabits = habits.map((habit) => {
+      const nextHabits = localHabits.map((habit) => {
         if (habit.id !== id) {
           return habit;
         }
         didUpdate = true;
-        return { ...habit, name: trimmed, categoryId };
+        return { ...habit, name, categoryId };
       });
       if (!didUpdate) {
         throw new Error("Habit not found.");
       }
-      await saveHabits(nextHabits);
+      await saveLocalHabits(nextHabits);
     },
-    [habits, saveHabits]
+    [localHabits, mode, saveLocalHabits, updateOnlineHabit]
   );
 
   const deleteHabit = useCallback(
     async (id: string) => {
-      if (!id) {
-        throw new Error("Habit ID is required.");
-      }
-      const nextHabits = habits.filter((habit) => habit.id !== id);
-      if (nextHabits.length === habits.length) {
-        throw new Error("Habit not found.");
-      }
-      await saveHabits(nextHabits);
-    },
-    [habits, saveHabits]
-  );
-
-  const reload = useCallback(async () => {
-    if (!isCloudAvailable) {
-      return;
-    }
-    try {
-      const dirExists = await CloudStorage.exists(HABITS_DIR, STORAGE_SCOPE);
-      if (!dirExists) {
-        await CloudStorage.mkdir(HABITS_DIR, STORAGE_SCOPE);
-      }
-      const fileExists = await CloudStorage.exists(HABITS_FILE, STORAGE_SCOPE);
-      if (!fileExists) {
-        await CloudStorage.writeFile(
-          HABITS_FILE,
-          JSON.stringify({ version: FILE_VERSION, habits: [] }),
-          STORAGE_SCOPE
-        );
-        setHabits([]);
-        setError(null);
+      if (mode === "signedIn") {
+        await deleteOnlineHabit({ habitId: toOnlineHabitId(id) });
         return;
       }
-      try {
-        await CloudStorage.triggerSync(HABITS_FILE, STORAGE_SCOPE);
-      } catch {
-        // Ignore sync issues and try reading anyway.
+      const nextHabits = localHabits.filter((habit) => habit.id !== id);
+      if (nextHabits.length === localHabits.length) {
+        throw new Error("Habit not found.");
       }
-      const content = await CloudStorage.readFile(HABITS_FILE, STORAGE_SCOPE);
-      const nextHabits = parseHabitsContent(content);
-      setHabits(nextHabits);
-      setError(null);
-    } catch {
-      setError("Unable to refresh from iCloud.");
-    }
-  }, [isCloudAvailable]);
+      await saveLocalHabits(nextHabits);
+    },
+    [deleteOnlineHabit, localHabits, mode, saveLocalHabits]
+  );
+
+  const habits =
+    mode === "signedIn"
+      ? normalizeOnlineHabits(onlineHabits ?? [])
+      : localHabits;
+  const isLoaded =
+    mode === "anonymous"
+      ? localLoaded && legacyImportReady
+      : onlineHabits !== undefined;
 
   const value = useMemo(
     () => ({
       habits,
       isLoaded,
-      isCloudAvailable,
+      mode,
+      syncState,
+      today,
+      authPromptVisible: mode === "anonymous",
       error,
       addHabit,
       toggleCheckInToday,
@@ -632,15 +773,17 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       reload,
     }),
     [
+      addHabit,
+      deleteHabit,
+      error,
       habits,
       isLoaded,
-      isCloudAvailable,
-      error,
-      addHabit,
+      mode,
+      reload,
+      syncState,
+      today,
       toggleCheckInToday,
       updateHabit,
-      deleteHabit,
-      reload,
     ]
   );
 

@@ -17,6 +17,12 @@
     "plugins": [
       "expo-router",
       [
+        "@clerk/expo",
+        {
+          "appleSignIn": true
+        }
+      ],
+      [
         "react-native-cloud-storage",
         {
           "iCloudContainerEnvironment": "Production",
@@ -30,10 +36,12 @@
         "expo-build-properties",
         {
           "ios": {
-            "deploymentTarget": "16.4"
+            "deploymentTarget": "17.0"
           }
         }
-      ]
+      ],
+      "expo-secure-store",
+      "expo-web-browser"
     ],
     "experiments": {
       "reactCompiler": true

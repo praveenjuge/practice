@@ -17,20 +17,18 @@ import { APP_ACCENT_COLOR } from "../../../components/app-colors";
 import { HabitStreakHistory } from "../../../components/habit-streak-history";
 import {
   getStreaks,
-  getTodayString,
   getYearHabitHistory,
   useHabits,
 } from "../../../components/habits-store";
 
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const { habits, deleteHabit, toggleCheckInToday } = useHabits();
+  const { habits, deleteHabit, today, toggleCheckInToday } = useHabits();
   const habitId = Array.isArray(id) ? id[0] : id;
   const habit = useMemo(
     () => habits.find((item) => item.id === habitId),
     [habits, habitId]
   );
-  const today = getTodayString();
   const historyWeeks = useMemo(
     () => getYearHabitHistory(habit?.checkins ?? [], today),
     [habit?.checkins, today]

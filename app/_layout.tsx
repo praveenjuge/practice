@@ -1,4 +1,8 @@
-import { Slot } from "expo-router";
+import { ClerkProvider, useAuth } from "@clerk/expo";
+import { tokenCache } from "@clerk/expo/token-cache";
+import { ConvexReactClient } from "convex/react";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { Stack } from "expo-router";
 import {
   DarkTheme,
   DefaultTheme,
@@ -12,13 +16,26 @@ import {
   useThemePreference,
 } from "../components/theme-preference";
 
+const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
+const convexUrl =
+  process.env.EXPO_PUBLIC_CONVEX_URL ?? "https://unset-practice.convex.cloud";
+const convex = new ConvexReactClient(convexUrl);
+
+export const unstable_settings = {
+  anchor: "(home)",
+};
+
 export default function RootLayout() {
   return (
-    <ThemePreferenceProvider>
-      <HabitsProvider>
-        <ThemedLayout />
-      </HabitsProvider>
-    </ThemePreferenceProvider>
+    <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={tokenCache}>
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        <ThemePreferenceProvider>
+          <HabitsProvider>
+            <ThemedLayout />
+          </HabitsProvider>
+        </ThemePreferenceProvider>
+      </ConvexProviderWithClerk>
+    </ClerkProvider>
   );
 }
 
@@ -38,7 +55,15 @@ function ThemedLayout() {
   return (
     <ThemeProvider value={themedNavigation}>
       <StatusBar style={isDark ? "light" : "dark"} />
-      <Slot />
+      <Stack screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="(home)" />
+        <Stack.Screen
+          name="(auth)"
+          options={{
+            presentation: "modal",
+          }}
+        />
+      </Stack>
     </ThemeProvider>
   );
 }
