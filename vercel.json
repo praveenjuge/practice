@@ -1,0 +1,12 @@
+{
+  "buildCommand": "bun run build:web",
+  "cleanUrls": true,
+  "framework": null,
+  "outputDirectory": "dist",
+  "rewrites": [
+    {
+      "source": "/:path*",
+      "destination": "/"
+    }
+  ]
+}

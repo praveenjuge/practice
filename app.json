@@ -54,6 +54,9 @@
     },
     "android": {
       "package": "com.praveenjuge.practice"
+    },
+    "web": {
+      "output": "single"
     }
   }
 }

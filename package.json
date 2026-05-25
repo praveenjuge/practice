@@ -7,14 +7,17 @@
     "build:local": "eas build --platform ios --local",
     "build:submit": "eas submit --platform ios",
     "check": "ultracite check",
-    "convex": "convex dev",
-    "dev": "bun run --parallel ios convex",
+    "dev": "bun run --parallel ios dev:convex",
+    "dev:convex": "convex dev",
     "fix": "ultracite fix",
     "ios": "expo run:ios",
     "metadata:pull": "eas metadata:pull",
     "metadata:push": "eas metadata:push",
     "prepare": "husky",
-    "start": "expo start"
+    "serve:web": "expo serve",
+    "start": "expo start",
+    "web": "expo start --web",
+    "build:web": "expo export --platform web --clear"
   },
   "dependencies": {
     "@clerk/expo": "^3.2.16",
@@ -45,6 +48,7 @@
     "react-native-cloud-storage": "^3.0.0",
     "react-native-safe-area-context": "^5.7.0",
     "react-native-screens": "4.25.2",
+    "react-native-web": "^0.21.2",
     "typescript": "~6.0.3"
   },
   "devDependencies": {
