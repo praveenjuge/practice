@@ -8,7 +8,7 @@
     "scheme": "practice",
     "ios": {
       "supportsTablet": false,
-      "icon": "./assets/app.icon",
+      "icon": "./assets/icon.png",
       "bundleIdentifier": "com.praveenjuge.practice",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
