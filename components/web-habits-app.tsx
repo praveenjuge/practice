@@ -1,4 +1,3 @@
-import { useAuth } from "@clerk/expo";
 import { UserButton } from "@clerk/expo/web";
 import { Host, TextInput } from "@expo/ui";
 import { router } from "expo-router";
@@ -189,7 +188,7 @@ function AuthGate() {
         >
           <Text style={[styles.title, { color: palette.text }]}>Practice</Text>
           <Text style={[styles.copy, { color: palette.secondary }]}>
-            Sign in to manage habits and streaks on the web.
+            Track your habits and build streaks. Sign in to get started.
           </Text>
           <WebButton label="Continue with Clerk" onPress={openHostedSignIn} />
           {WEB_SIGN_IN_URL ? null : (
@@ -203,6 +202,8 @@ function AuthGate() {
   );
 }
 
+export { AuthGate };
+
 function Shell({
   children,
   title,
@@ -210,27 +211,7 @@ function Shell({
   children: React.ReactNode;
   title: string;
 }) {
-  const { isLoaded, isSignedIn } = useAuth();
   const palette = usePalette();
-
-  // While Clerk restores the persisted session, isSignedIn is briefly false.
-  // Render a neutral loading state so the sign-in screen doesn't flash.
-  if (!isLoaded) {
-    return (
-      <Host
-        style={{ backgroundColor: palette.page, flex: 1 }}
-        useViewportSizeMeasurement
-      >
-        <View style={styles.centered}>
-          <Text style={{ color: palette.secondary }}>Loading...</Text>
-        </View>
-      </Host>
-    );
-  }
-
-  if (!isSignedIn) {
-    return <AuthGate />;
-  }
 
   return (
     <Host
@@ -444,7 +425,7 @@ function DeleteDialog({
 }
 
 function HabitDetail({ habit }: { habit?: Habit }) {
-  const { deleteHabit, today, toggleCheckInToday, syncState } = useHabits();
+  const { deleteHabit, today, toggleCheckInToday } = useHabits();
   const palette = usePalette();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -468,7 +449,6 @@ function HabitDetail({ habit }: { habit?: Habit }) {
   const lastCheckin = habit.checkins.length
     ? habit.checkins.slice().sort().at(-1)
     : "Never";
-  const isOnline = syncState === "online";
 
   const handleToggle = () => {
     setError(null);
@@ -508,11 +488,6 @@ function HabitDetail({ habit }: { habit?: Habit }) {
           variant="outlined"
         />
       </View>
-      {syncState === "offline" ? (
-        <Text style={[styles.errorTextLeft, { color: DANGER_COLOR }]}>
-          Online storage is unavailable. Reconnect to update habits.
-        </Text>
-      ) : null}
       {error ? (
         <Text style={[styles.errorTextLeft, { color: DANGER_COLOR }]}>
           {error}
@@ -541,13 +516,11 @@ function HabitDetail({ habit }: { habit?: Habit }) {
       </View>
       <View style={styles.actionRow}>
         <WebButton
-          disabled={!isOnline}
           label={isComplete ? "Mark incomplete" : "Mark complete"}
           onPress={handleToggle}
         />
         <WebButton
           destructive
-          disabled={!isOnline}
           label="Delete"
           onPress={() => setDeleting(true)}
           variant="outlined"

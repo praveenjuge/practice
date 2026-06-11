@@ -3,6 +3,7 @@ import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { Text, View } from "react-native";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitsProvider } from "../habits-store";
 import {
@@ -35,18 +36,43 @@ export default function RootLayout() {
 
 function ThemedLayout() {
   const { resolvedScheme } = useThemePreference();
+  const { isLoaded, isSignedIn } = useAuth();
+  const isDark = resolvedScheme === "dark";
+
+  // Gate routing until Clerk restores the session so we never mount the
+  // (auth) group during session restore on the web.
+  if (!isLoaded) {
+    return (
+      <View
+        style={{
+          alignItems: "center",
+          backgroundColor: isDark ? "#000000" : "#f5f5f7",
+          flex: 1,
+          justifyContent: "center",
+        }}
+      >
+        <Text style={{ color: isDark ? "#98989f" : "#6e6e73" }}>
+          Loading...
+        </Text>
+      </View>
+    );
+  }
 
   return (
     <>
-      <StatusBar style={resolvedScheme === "dark" ? "light" : "dark"} />
+      <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
           headerShown: false,
           contentStyle: { backgroundColor: APP_ACCENT_COLOR },
         }}
       >
-        <Stack.Screen name="(home)" />
-        <Stack.Screen name="(auth)" />
+        <Stack.Protected guard={Boolean(isSignedIn)}>
+          <Stack.Screen name="(home)" />
+        </Stack.Protected>
+        <Stack.Protected guard={!isSignedIn}>
+          <Stack.Screen name="(auth)" />
+        </Stack.Protected>
       </Stack>
     </>
   );

@@ -1,13 +1,6 @@
-import { useAuth } from "@clerk/expo";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import type React from "react";
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-} from "react";
+import { createContext, useCallback, useContext, useMemo } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import {
@@ -29,22 +22,14 @@ export interface HabitStreaks {
   current: number;
 }
 
-type StorageMode = "anonymous" | "signedIn";
-type SyncState = "idle" | "claiming" | "online" | "offline" | "error";
-
 interface HabitsContextValue {
   addHabit: (input: {
     name: string;
     categoryId?: HabitCategoryId;
   }) => Promise<void>;
-  authPromptVisible: boolean;
   deleteHabit: (id: string) => Promise<void>;
-  error: string | null;
   habits: Habit[];
   isLoaded: boolean;
-  mode: StorageMode;
-  reload: () => Promise<void>;
-  syncState: SyncState;
   today: string;
   toggleCheckInToday: (id: string) => Promise<void>;
   updateHabit: (
@@ -269,47 +254,33 @@ const normalizeOnlineHabits = (
 const toOnlineHabitId = (id: string) => id as Id<"habits">;
 
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
-  const { isSignedIn } = useAuth();
-  const { isAuthenticated, isLoading: convexAuthLoading } = useConvexAuth();
+  const { isAuthenticated } = useConvexAuth();
   const onlineHabits = useOnlineHabits(isAuthenticated);
   const createOnlineHabit = useMutation(api.habits.create);
   const updateOnlineHabit = useMutation(api.habits.update);
   const deleteOnlineHabit = useMutation(api.habits.remove);
   const toggleOnlineCheckin = useMutation(api.habits.toggleCheckin);
-  const [error, setError] = useState<string | null>(null);
-  const mode: StorageMode = isSignedIn ? "signedIn" : "anonymous";
   const today = getUtcTodayString();
-
-  const requireOnline = useCallback(() => {
-    if (!isAuthenticated) {
-      throw new Error("Sign in to manage habits.");
-    }
-    if (onlineHabits === undefined) {
-      throw new Error("Reconnect before changing habits.");
-    }
-  }, [isAuthenticated, onlineHabits]);
 
   const addHabit = useCallback(
     async (input: { name: string; categoryId?: HabitCategoryId }) => {
-      requireOnline();
       await createOnlineHabit({
         name: normalizeHabitName(input.name),
         categoryId: normalizeHabitCategoryId(input.categoryId),
         createdAt: getUtcTodayString(),
       });
     },
-    [createOnlineHabit, requireOnline]
+    [createOnlineHabit]
   );
 
   const toggleCheckInToday = useCallback(
     async (id: string) => {
-      requireOnline();
       await toggleOnlineCheckin({
         habitId: toOnlineHabitId(id),
         date: getUtcTodayString(),
       });
     },
-    [requireOnline, toggleOnlineCheckin]
+    [toggleOnlineCheckin]
   );
 
   const updateHabit = useCallback(
@@ -317,64 +288,36 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       id: string,
       input: { name: string; categoryId: HabitCategoryId }
     ) => {
-      requireOnline();
       await updateOnlineHabit({
         habitId: toOnlineHabitId(id),
         name: normalizeHabitName(input.name),
         categoryId: normalizeHabitCategoryId(input.categoryId),
       });
     },
-    [requireOnline, updateOnlineHabit]
+    [updateOnlineHabit]
   );
 
   const deleteHabit = useCallback(
     async (id: string) => {
-      requireOnline();
       await deleteOnlineHabit({ habitId: toOnlineHabitId(id) });
     },
-    [deleteOnlineHabit, requireOnline]
+    [deleteOnlineHabit]
   );
-
-  const reload = useCallback(() => {
-    setError(null);
-    return Promise.resolve();
-  }, []);
-
-  let syncState: SyncState = "offline";
-  if (mode === "anonymous") {
-    syncState = "idle";
-  } else if (onlineHabits !== undefined) {
-    syncState = "online";
-  }
 
   const value = useMemo(
     () => ({
-      habits: isAuthenticated ? normalizeOnlineHabits(onlineHabits ?? []) : [],
-      isLoaded:
-        mode === "anonymous" || convexAuthLoading
-          ? !convexAuthLoading
-          : onlineHabits !== undefined,
-      mode,
-      syncState,
+      habits: normalizeOnlineHabits(onlineHabits ?? []),
+      isLoaded: onlineHabits !== undefined,
       today,
-      authPromptVisible: mode === "anonymous",
-      error,
       addHabit,
       toggleCheckInToday,
       updateHabit,
       deleteHabit,
-      reload,
     }),
     [
       addHabit,
-      convexAuthLoading,
       deleteHabit,
-      error,
-      isAuthenticated,
-      mode,
       onlineHabits,
-      reload,
-      syncState,
       today,
       toggleCheckInToday,
       updateHabit,

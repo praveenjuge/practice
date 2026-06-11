@@ -4,14 +4,6 @@ import { mutation, query } from "./_generated/server";
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_HABIT_NAME_LENGTH = 120;
 
-const habitInput = v.object({
-  categoryId: v.string(),
-  checkins: v.array(v.string()),
-  createdAt: v.string(),
-  id: v.string(),
-  name: v.string(),
-});
-
 const getOwnerId = async (ctx: {
   auth: { getUserIdentity: () => Promise<null | { subject: string }> };
 }) => {
@@ -19,7 +11,7 @@ const getOwnerId = async (ctx: {
   if (!identity) {
     throw new ConvexError({
       code: "UNAUTHORIZED",
-      message: "Sign in to sync habits.",
+      message: "Sign in to manage your habits.",
     });
   }
   return identity.subject;
@@ -28,9 +20,6 @@ const getOwnerId = async (ctx: {
 const normalizeName = (name: string) => name.trim().replace(/\s+/g, " ");
 const normalizeKey = (name: string) => normalizeName(name).toLocaleLowerCase();
 const isDate = (value: string) => DATE_RE.test(value);
-
-const normalizeCheckins = (dates: string[]) =>
-  Array.from(new Set(dates.filter(isDate))).sort();
 
 export const list = query({
   args: {},
@@ -167,78 +156,5 @@ export const toggleCheckin = mutation({
       date: args.date,
     });
     return null;
-  },
-});
-
-export const claimFromLocal = mutation({
-  args: { habits: v.array(habitInput), importKey: v.string() },
-  returns: v.object({ imported: v.boolean() }),
-  handler: async (ctx, args) => {
-    const ownerId = await getOwnerId(ctx);
-    const imports = await ctx.db
-      .query("claimImports")
-      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
-      .collect();
-    const existingImport = imports.find(
-      (item) => item.importKey === args.importKey
-    );
-    if (existingImport) {
-      return { imported: true };
-    }
-
-    for (const input of args.habits) {
-      const name = normalizeName(input.name);
-      if (
-        !name ||
-        name.length > MAX_HABIT_NAME_LENGTH ||
-        !isDate(input.createdAt)
-      ) {
-        continue;
-      }
-      const normalizedName = normalizeKey(name);
-      const matchingHabits = await ctx.db
-        .query("habits")
-        .withIndex("by_owner_and_name", (q) => q.eq("ownerId", ownerId))
-        .collect();
-      let habit =
-        matchingHabits.find((item) => item.normalizedName === normalizedName) ??
-        null;
-      if (!habit) {
-        const habitId = await ctx.db.insert("habits", {
-          ownerId,
-          name,
-          normalizedName,
-          categoryId: input.categoryId,
-          createdAt: input.createdAt,
-          updatedAt: Date.now(),
-        });
-        habit = await ctx.db.get(habitId);
-      }
-      if (!habit) {
-        continue;
-      }
-      const habitCheckins = await ctx.db
-        .query("checkins")
-        .withIndex("by_habit", (q) => q.eq("habitId", habit._id))
-        .collect();
-      for (const date of normalizeCheckins(input.checkins)) {
-        const existing = habitCheckins.find((checkin) => checkin.date === date);
-        if (!existing) {
-          await ctx.db.insert("checkins", {
-            ownerId,
-            habitId: habit._id,
-            date,
-          });
-        }
-      }
-    }
-
-    await ctx.db.insert("claimImports", {
-      ownerId,
-      importKey: args.importKey,
-      habitCount: args.habits.length,
-      completedAt: Date.now(),
-    });
-    return { imported: true };
   },
 });

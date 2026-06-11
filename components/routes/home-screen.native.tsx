@@ -1,72 +1,21 @@
-import { useAuth } from "@clerk/expo";
 import { UserButton } from "@clerk/expo/native";
 import { Host, Icon, List, ListItem } from "@expo/ui";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Alert, View } from "react-native";
+import { Alert, View } from "react-native";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import {
   getRollingWeekCheckins,
   hasCheckInToday,
   useHabits,
 } from "../habits-store";
-import {
-  ADD_ICON,
-  CHECK_ICON,
-  CIRCLE_ICON,
-  SYNC_ICON,
-  WARNING_ICON,
-} from "../native-icons";
+import { ADD_ICON, CHECK_ICON, CIRCLE_ICON } from "../native-icons";
 import { WeeklyStreakBoxes } from "../weekly-streak-boxes";
-import { NativeAuthEntry } from "./native-auth-entry";
 
 export default function HomeScreen() {
-  const { isLoaded: authLoaded, isSignedIn } = useAuth();
-
-  // Clerk reports isSignedIn === false until the persisted session is
-  // restored. Wait for authLoaded before deciding, otherwise the sign-in
-  // screen flashes on every cold start even when already signed in.
-  if (!authLoaded) {
-    return <AuthLoadingScreen />;
-  }
-
-  if (!isSignedIn) {
-    return <NativeAuthEntry />;
-  }
-
-  return <SignedInHomeScreen />;
-}
-
-function AuthLoadingScreen() {
-  return (
-    <>
-      <Stack.Screen options={{ headerShown: false, title: "Practice" }} />
-      <View
-        style={{
-          alignItems: "center",
-          flex: 1,
-          justifyContent: "center",
-        }}
-      >
-        <ActivityIndicator color={APP_ACCENT_COLOR} size="large" />
-      </View>
-    </>
-  );
-}
-
-function SignedInHomeScreen() {
-  const {
-    habits,
-    isLoaded,
-    error,
-    syncState,
-    today,
-    toggleCheckInToday,
-    reload,
-  } = useHabits();
+  const { habits, isLoaded, today, toggleCheckInToday } = useHabits();
   const [searchQuery, setSearchQuery] = useState("");
-  const isOnline = syncState === "online";
   const trimmedSearchQuery = searchQuery.trim();
   const filteredHabits = trimmedSearchQuery
     ? habits.filter((habit) =>
@@ -82,10 +31,6 @@ function SignedInHomeScreen() {
   };
 
   const handleToggle = (habitId: string) => {
-    if (!isOnline) {
-      Alert.alert("Offline", "Reconnect before changing habits.");
-      return;
-    }
     const habit = habits.find((item) => item.id === habitId);
     const willCheckIn = !hasCheckInToday(habit?.checkins ?? [], today);
     if (willCheckIn) {
@@ -123,29 +68,12 @@ function SignedInHomeScreen() {
           </View>
         </Stack.Toolbar.View>
         <Stack.Toolbar.Button
-          disabled={!isOnline}
           icon="plus"
           onPress={() => router.push("/habit/new")}
         />
       </Stack.Toolbar>
       <Host style={{ flex: 1 }}>
-        <List onRefresh={reload}>
-          {syncState === "online" ? null : (
-            <ListItem
-              leading={<Icon color="#f59e0b" name={SYNC_ICON} size={22} />}
-              supportingText="Your current list is read-only until Convex reconnects."
-            >
-              Offline
-            </ListItem>
-          )}
-          {error ? (
-            <ListItem
-              leading={<Icon color="#ef4444" name={WARNING_ICON} size={22} />}
-              supportingText={error}
-            >
-              Storage
-            </ListItem>
-          ) : null}
+        <List>
           {isLoaded && filteredHabits.length === 0 ? (
             <ListItem
               leading={
@@ -155,7 +83,7 @@ function SignedInHomeScreen() {
               supportingText={
                 trimmedSearchQuery
                   ? `No habit matches "${trimmedSearchQuery}".`
-                  : "Add your first Convex-backed habit."
+                  : "Add your first habit."
               }
             >
               No habits

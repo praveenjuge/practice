@@ -20,12 +20,4 @@ export default defineSchema({
     .index("by_habit", ["habitId"])
     .index("by_habit_and_date", ["habitId", "date"])
     .index("by_owner", ["ownerId"]),
-  claimImports: defineTable({
-    completedAt: v.number(),
-    habitCount: v.number(),
-    importKey: v.string(),
-    ownerId: v.string(),
-  })
-    .index("by_owner", ["ownerId"])
-    .index("by_owner_and_key", ["ownerId", "importKey"]),
 });

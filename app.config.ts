@@ -1,4 +1,4 @@
-import appJson from "./app.json";
+import appJson from "./app.json" with { type: "json" };
 
 const googleWebClientId = process.env.EXPO_PUBLIC_CLERK_GOOGLE_WEB_CLIENT_ID;
 const googleAndroidClientId =

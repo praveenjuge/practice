@@ -29,13 +29,3 @@ export const EDIT_ICON = Icon.select({
   android: import("@expo/material-symbols/edit.xml"),
   ios: "pencil",
 });
-
-export const SYNC_ICON = Icon.select({
-  android: import("@expo/material-symbols/sync.xml"),
-  ios: "arrow.trianglehead.2.clockwise",
-});
-
-export const WARNING_ICON = Icon.select({
-  android: import("@expo/material-symbols/warning.xml"),
-  ios: "exclamationmark.triangle",
-});

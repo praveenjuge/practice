@@ -1,3 +1,4 @@
+import { getItem, setItem } from "expo-secure-store";
 import type React from "react";
 import {
   createContext,
@@ -6,8 +7,12 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Appearance, type ColorSchemeName, useColorScheme } from "react-native";
-import "expo-sqlite/localStorage/install";
+import {
+  Appearance,
+  type ColorSchemeName,
+  Platform,
+  useColorScheme,
+} from "react-native";
 
 type ThemePreference = "system" | "light" | "dark";
 
@@ -19,6 +24,22 @@ interface ThemePreferenceContextValue {
 }
 
 const STORAGE_KEY = "practice.themePreference";
+const isWeb = Platform.OS === "web";
+
+const readStoredPreference = (): null | string => {
+  if (isWeb) {
+    return localStorage.getItem(STORAGE_KEY);
+  }
+  return getItem(STORAGE_KEY);
+};
+
+const writeStoredPreference = (value: ThemePreference) => {
+  if (isWeb) {
+    localStorage.setItem(STORAGE_KEY, value);
+    return;
+  }
+  setItem(STORAGE_KEY, value);
+};
 
 const ThemePreferenceContext =
   createContext<ThemePreferenceContextValue | null>(null);
@@ -43,7 +64,7 @@ const applyAppearancePreference = (preference: ThemePreference) => {
 
 const loadInitialPreference = (): ThemePreference => {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY);
+    const saved = readStoredPreference();
     if (saved === "light" || saved === "dark" || saved === "system") {
       applyAppearancePreference(saved);
       return saved;
@@ -68,7 +89,7 @@ export function ThemePreferenceProvider({
     setPreferenceState(newPreference);
     applyAppearancePreference(newPreference);
     try {
-      localStorage.setItem(STORAGE_KEY, newPreference);
+      writeStoredPreference(newPreference);
     } catch {
       // Ignore write errors
     }
