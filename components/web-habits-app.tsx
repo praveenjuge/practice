@@ -1,11 +1,12 @@
 import { useAuth } from "@clerk/expo";
 import { UserButton } from "@clerk/expo/web";
-import { Button, Host, TextInput } from "@expo/ui";
+import { Host, TextInput } from "@expo/ui";
 import { router } from "expo-router";
 import { useMemo, useState } from "react";
 import {
   Modal,
   Pressable,
+  type PressableStateCallbackType,
   ScrollView,
   StyleSheet,
   Text,
@@ -40,12 +41,120 @@ interface WebHabitFormProps {
 }
 
 const WEB_SIGN_IN_URL = process.env.EXPO_PUBLIC_CLERK_SIGN_IN_URL ?? "";
+const WIDE_BREAKPOINT = 900;
+const DANGER_COLOR = "#ff3b30";
 
-const textColor = (isDark: boolean) => (isDark ? "#f5f5f7" : "#111827");
-const secondaryColor = (isDark: boolean) => (isDark ? "#a1a1aa" : "#6b7280");
-const borderColor = (isDark: boolean) => (isDark ? "#27272a" : "#e5e7eb");
-const panelColor = (isDark: boolean) => (isDark ? "#111113" : "#ffffff");
-const pageColor = (isDark: boolean) => (isDark ? "#050506" : "#f5f5f7");
+interface Palette {
+  accentSoft: string;
+  border: string;
+  fieldBg: string;
+  hairline: string;
+  hover: string;
+  page: string;
+  panel: string;
+  secondary: string;
+  shadow: string;
+  sidebar: string;
+  text: string;
+  track: string;
+}
+
+const DARK_PALETTE: Palette = {
+  page: "#000000",
+  panel: "#1c1c1e",
+  sidebar: "#141416",
+  text: "#f5f5f7",
+  secondary: "#98989f",
+  border: "#2a2a2c",
+  hairline: "#38383a",
+  hover: "rgba(255,255,255,0.06)",
+  track: "#2c2c2e",
+  accentSoft: `${APP_ACCENT_COLOR}33`,
+  fieldBg: "#1c1c1e",
+  shadow: "none",
+};
+
+const LIGHT_PALETTE: Palette = {
+  page: "#f5f5f7",
+  panel: "#ffffff",
+  sidebar: "#fbfbfd",
+  text: "#1d1d1f",
+  secondary: "#6e6e73",
+  border: "#e4e4e9",
+  hairline: "#d2d2d7",
+  hover: "rgba(0,0,0,0.035)",
+  track: "#e8e8ed",
+  accentSoft: `${APP_ACCENT_COLOR}1f`,
+  fieldBg: "#ffffff",
+  shadow: "0px 1px 2px rgba(0,0,0,0.04), 0px 8px 24px rgba(0,0,0,0.05)",
+};
+
+function usePalette(): Palette {
+  const isDark = useColorScheme() === "dark";
+  return isDark ? DARK_PALETTE : LIGHT_PALETTE;
+}
+
+const isHovered = (state: PressableStateCallbackType): boolean =>
+  Boolean((state as { hovered?: boolean }).hovered);
+
+function selectableBackground(
+  state: PressableStateCallbackType,
+  isSelected: boolean,
+  palette: Palette
+): string {
+  if (isSelected) {
+    return palette.accentSoft;
+  }
+  if (isHovered(state)) {
+    return palette.hover;
+  }
+  return "transparent";
+}
+
+type WebButtonVariant = "filled" | "outlined";
+
+function WebButton({
+  label,
+  onPress,
+  variant = "filled",
+  disabled = false,
+  destructive = false,
+}: {
+  label: string;
+  onPress: () => void;
+  variant?: WebButtonVariant;
+  disabled?: boolean;
+  destructive?: boolean;
+}) {
+  const accent = destructive ? DANGER_COLOR : APP_ACCENT_COLOR;
+  const filled = variant === "filled";
+  const baseVariant = filled
+    ? { backgroundColor: accent }
+    : { borderColor: accent, borderWidth: 1 };
+  const hoverVariant = filled
+    ? styles.buttonFilledHover
+    : { backgroundColor: `${accent}1f` };
+
+  return (
+    <Pressable
+      disabled={disabled}
+      onPress={onPress}
+      role="button"
+      style={(state) => [
+        styles.button,
+        baseVariant,
+        isHovered(state) && !disabled ? hoverVariant : null,
+        disabled ? styles.buttonDisabled : null,
+      ]}
+    >
+      <Text
+        style={[styles.buttonLabel, { color: filled ? "#ffffff" : accent }]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
+}
 
 export function openHostedSignIn() {
   if (!WEB_SIGN_IN_URL || typeof window === "undefined") {
@@ -61,29 +170,34 @@ export function openHostedSignIn() {
 }
 
 function AuthGate() {
-  const isDark = useColorScheme() === "dark";
+  const palette = usePalette();
   return (
     <Host
-      style={{
-        backgroundColor: pageColor(isDark),
-        flex: 1,
-        padding: 24,
-      }}
+      style={{ backgroundColor: palette.page, flex: 1, padding: 24 }}
       useViewportSizeMeasurement
     >
       <View style={styles.centered}>
-        <Text style={[styles.title, { color: textColor(isDark) }]}>
-          Practice
-        </Text>
-        <Text style={[styles.copy, { color: secondaryColor(isDark) }]}>
-          Sign in to manage habits and streaks on the web.
-        </Text>
-        <Button label="Continue with Clerk" onPress={openHostedSignIn} />
-        {WEB_SIGN_IN_URL ? null : (
-          <Text style={[styles.errorText, { color: "#b91c1c" }]}>
-            Set EXPO_PUBLIC_CLERK_SIGN_IN_URL to enable hosted web sign-in.
+        <View
+          style={[
+            styles.authCard,
+            {
+              backgroundColor: palette.panel,
+              borderColor: palette.border,
+              boxShadow: palette.shadow,
+            },
+          ]}
+        >
+          <Text style={[styles.title, { color: palette.text }]}>Practice</Text>
+          <Text style={[styles.copy, { color: palette.secondary }]}>
+            Sign in to manage habits and streaks on the web.
           </Text>
-        )}
+          <WebButton label="Continue with Clerk" onPress={openHostedSignIn} />
+          {WEB_SIGN_IN_URL ? null : (
+            <Text style={[styles.errorText, { color: DANGER_COLOR }]}>
+              Set EXPO_PUBLIC_CLERK_SIGN_IN_URL to enable hosted web sign-in.
+            </Text>
+          )}
+        </View>
       </View>
     </Host>
   );
@@ -97,7 +211,7 @@ function Shell({
   title: string;
 }) {
   const { isSignedIn } = useAuth();
-  const isDark = useColorScheme() === "dark";
+  const palette = usePalette();
 
   if (!isSignedIn) {
     return <AuthGate />;
@@ -105,15 +219,23 @@ function Shell({
 
   return (
     <Host
-      style={{
-        backgroundColor: pageColor(isDark),
-        flex: 1,
-      }}
+      style={{ backgroundColor: palette.page, flex: 1 }}
       useViewportSizeMeasurement
     >
-      <View style={[styles.header, { borderBottomColor: borderColor(isDark) }]}>
-        <Pressable onPress={() => router.replace("/")}>
-          <Text style={[styles.headerTitle, { color: textColor(isDark) }]}>
+      <View
+        style={[
+          styles.header,
+          {
+            backgroundColor: palette.panel,
+            borderBottomColor: palette.hairline,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => router.replace("/")}
+          style={styles.headerTitleButton}
+        >
+          <Text style={[styles.headerTitle, { color: palette.text }]}>
             {title}
           </Text>
         </Pressable>
@@ -133,7 +255,7 @@ function HabitList({
   selectedHabitId?: string;
   today: string;
 }) {
-  const isDark = useColorScheme() === "dark";
+  const palette = usePalette();
   const [query, setQuery] = useState("");
   const filteredHabits = useMemo(() => {
     const normalized = query.trim().toLowerCase();
@@ -146,19 +268,31 @@ function HabitList({
   }, [habits, query]);
 
   return (
-    <View style={[styles.listPane, { borderRightColor: borderColor(isDark) }]}>
+    <View
+      style={[
+        styles.listPane,
+        {
+          backgroundColor: palette.sidebar,
+          borderRightColor: palette.hairline,
+        },
+      ]}
+    >
       <View style={styles.listToolbar}>
         <TextInput
           onChangeText={setQuery}
           placeholder="Search habits"
-          style={styles.input}
-          value={undefined}
+          placeholderTextColor={palette.secondary}
+          style={StyleSheet.flatten([
+            styles.searchField,
+            { backgroundColor: palette.track },
+          ])}
+          textStyle={{ color: palette.text }}
         />
-        <Button label="New" onPress={() => router.push("/habit/new")} />
+        <WebButton label="New" onPress={() => router.push("/habit/new")} />
       </View>
       <ScrollView contentContainerStyle={styles.listContent}>
         {filteredHabits.length === 0 ? (
-          <Text style={[styles.emptyText, { color: secondaryColor(isDark) }]}>
+          <Text style={[styles.emptyText, { color: palette.secondary }]}>
             {query.trim() ? "No habit matches that search." : "No habits yet."}
           </Text>
         ) : (
@@ -170,15 +304,14 @@ function HabitList({
               <Pressable
                 key={habit.id}
                 onPress={() => router.push(`/habit/${habit.id}`)}
-                style={[
+                style={(state) => [
                   styles.habitRow,
                   {
-                    backgroundColor: isSelected
-                      ? `${APP_ACCENT_COLOR}18`
-                      : panelColor(isDark),
-                    borderColor: isSelected
-                      ? APP_ACCENT_COLOR
-                      : borderColor(isDark),
+                    backgroundColor: selectableBackground(
+                      state,
+                      isSelected,
+                      palette
+                    ),
                   },
                 ]}
               >
@@ -191,12 +324,21 @@ function HabitList({
                         : "transparent",
                       borderColor: isComplete
                         ? APP_ACCENT_COLOR
-                        : secondaryColor(isDark),
+                        : palette.secondary,
                     },
                   ]}
                 />
                 <View style={styles.rowMain}>
-                  <Text style={[styles.rowTitle, { color: textColor(isDark) }]}>
+                  <Text
+                    numberOfLines={1}
+                    style={[
+                      styles.rowTitle,
+                      {
+                        color: isSelected ? APP_ACCENT_COLOR : palette.text,
+                        fontWeight: isSelected ? "700" : "600",
+                      },
+                    ]}
+                  >
                     {habit.name}
                   </Text>
                   <View style={styles.miniStreak}>
@@ -208,7 +350,7 @@ function HabitList({
                           {
                             backgroundColor: day.completed
                               ? APP_ACCENT_COLOR
-                              : borderColor(isDark),
+                              : palette.track,
                           },
                         ]}
                       />
@@ -225,9 +367,9 @@ function HabitList({
 }
 
 function HistoryGrid({ weeks }: { weeks: HabitHistoryWeek[] }) {
-  const isDark = useColorScheme() === "dark";
+  const palette = usePalette();
   return (
-    <ScrollView horizontal showsHorizontalScrollIndicator>
+    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
       <View style={styles.historyGrid}>
         {weeks.map((week) => (
           <View key={week.weekStart} style={styles.historyColumn}>
@@ -236,9 +378,7 @@ function HistoryGrid({ weeks }: { weeks: HabitHistoryWeek[] }) {
                 key={day.date}
                 style={[
                   styles.historyCell,
-                  {
-                    backgroundColor: getHistoryCellColor(day, isDark),
-                  },
+                  { backgroundColor: getHistoryCellColor(day, palette) },
                 ]}
               />
             ))}
@@ -258,7 +398,7 @@ function DeleteDialog({
   onCancel: () => void;
   onConfirm: () => void;
 }) {
-  const isDark = useColorScheme() === "dark";
+  const palette = usePalette();
   return (
     <Modal animationType="fade" onRequestClose={onCancel} transparent visible>
       <View style={styles.modalBackdrop}>
@@ -266,20 +406,21 @@ function DeleteDialog({
           style={[
             styles.dialog,
             {
-              backgroundColor: panelColor(isDark),
-              borderColor: borderColor(isDark),
+              backgroundColor: palette.panel,
+              borderColor: palette.border,
+              boxShadow: palette.shadow,
             },
           ]}
         >
-          <Text style={[styles.dialogTitle, { color: textColor(isDark) }]}>
+          <Text style={[styles.dialogTitle, { color: palette.text }]}>
             Delete habit?
           </Text>
-          <Text style={[styles.copy, { color: secondaryColor(isDark) }]}>
+          <Text style={[styles.copyLeft, { color: palette.secondary }]}>
             This removes {habitName} and all of its streak history.
           </Text>
           <View style={styles.dialogActions}>
-            <Button label="Cancel" onPress={onCancel} variant="outlined" />
-            <Button label="Delete" onPress={onConfirm} />
+            <WebButton label="Cancel" onPress={onCancel} variant="outlined" />
+            <WebButton destructive label="Delete" onPress={onConfirm} />
           </View>
         </View>
       </View>
@@ -289,17 +430,17 @@ function DeleteDialog({
 
 function HabitDetail({ habit }: { habit?: Habit }) {
   const { deleteHabit, today, toggleCheckInToday, syncState } = useHabits();
-  const isDark = useColorScheme() === "dark";
+  const palette = usePalette();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (!habit) {
     return (
       <View style={styles.detailEmpty}>
-        <Text style={[styles.title, { color: textColor(isDark) }]}>
+        <Text style={[styles.title, { color: palette.text }]}>
           Select a habit
         </Text>
-        <Text style={[styles.copy, { color: secondaryColor(isDark) }]}>
+        <Text style={[styles.copy, { color: palette.secondary }]}>
           Choose a habit from the list to see its streak history.
         </Text>
       </View>
@@ -339,25 +480,28 @@ function HabitDetail({ habit }: { habit?: Habit }) {
     <ScrollView contentContainerStyle={styles.detailContent}>
       <View style={styles.detailHeader}>
         <View style={styles.rowMain}>
-          <Text style={[styles.title, { color: textColor(isDark) }]}>
+          <Text style={[styles.detailTitle, { color: palette.text }]}>
             {habit.name}
           </Text>
-          <Text style={[styles.copy, { color: secondaryColor(isDark) }]}>
+          <Text style={[styles.copyLeft, { color: palette.secondary }]}>
             {getHabitCategory(habit.categoryId).label}
           </Text>
         </View>
-        <Button
+        <WebButton
           label="Edit"
           onPress={() => router.push(`/habit/edit/${habit.id}`)}
+          variant="outlined"
         />
       </View>
       {syncState === "offline" ? (
-        <Text style={[styles.errorText, { color: "#b91c1c" }]}>
+        <Text style={[styles.errorTextLeft, { color: DANGER_COLOR }]}>
           Online storage is unavailable. Reconnect to update habits.
         </Text>
       ) : null}
       {error ? (
-        <Text style={[styles.errorText, { color: "#b91c1c" }]}>{error}</Text>
+        <Text style={[styles.errorTextLeft, { color: DANGER_COLOR }]}>
+          {error}
+        </Text>
       ) : null}
       <View style={styles.statsGrid}>
         <Metric label="Current" value={streaks.current} />
@@ -369,23 +513,25 @@ function HabitDetail({ habit }: { habit?: Habit }) {
         style={[
           styles.panel,
           {
-            backgroundColor: panelColor(isDark),
-            borderColor: borderColor(isDark),
+            backgroundColor: palette.panel,
+            borderColor: palette.border,
+            boxShadow: palette.shadow,
           },
         ]}
       >
-        <Text style={[styles.sectionTitle, { color: textColor(isDark) }]}>
-          History
+        <Text style={[styles.sectionTitle, { color: palette.secondary }]}>
+          HISTORY
         </Text>
         <HistoryGrid weeks={history} />
       </View>
       <View style={styles.actionRow}>
-        <Button
+        <WebButton
           disabled={!isOnline}
           label={isComplete ? "Mark incomplete" : "Mark complete"}
           onPress={handleToggle}
         />
-        <Button
+        <WebButton
+          destructive
           disabled={!isOnline}
           label="Delete"
           onPress={() => setDeleting(true)}
@@ -404,21 +550,25 @@ function HabitDetail({ habit }: { habit?: Habit }) {
 }
 
 function Metric({ label, value }: { label: string; value: number | string }) {
-  const isDark = useColorScheme() === "dark";
+  const palette = usePalette();
   return (
     <View
       style={[
         styles.metric,
         {
-          backgroundColor: panelColor(isDark),
-          borderColor: borderColor(isDark),
+          backgroundColor: palette.panel,
+          borderColor: palette.border,
+          boxShadow: palette.shadow,
         },
       ]}
     >
-      <Text style={[styles.metricValue, { color: textColor(isDark) }]}>
+      <Text
+        numberOfLines={1}
+        style={[styles.metricValue, { color: palette.text }]}
+      >
         {value}
       </Text>
-      <Text style={[styles.metricLabel, { color: secondaryColor(isDark) }]}>
+      <Text style={[styles.metricLabel, { color: palette.secondary }]}>
         {label}
       </Text>
     </View>
@@ -428,42 +578,55 @@ function Metric({ label, value }: { label: string; value: number | string }) {
 export function WebHabitsApp({ selectedHabitId }: WebHabitsAppProps) {
   const { habits, isLoaded, today } = useHabits();
   const { width } = useWindowDimensions();
-  const isWide = width >= 900;
+  const isWide = width >= WIDE_BREAKPOINT;
   const selectedHabit =
     habits.find((habit) => habit.id === selectedHabitId) ??
     (selectedHabitId ? undefined : habits[0]);
 
+  if (!isLoaded) {
+    return (
+      <Shell title="Practice">
+        <View style={styles.centered}>
+          <Text>Loading habits...</Text>
+        </View>
+      </Shell>
+    );
+  }
+
+  // Narrow screens use a native-style master/detail flow: the list at the
+  // root route, the detail once a habit is selected via the URL.
+  const showDetail = isWide || Boolean(selectedHabitId);
+  const showList = isWide || !selectedHabitId;
+
   return (
     <Shell title="Practice">
-      {isLoaded ? (
-        <View style={isWide ? styles.desktop : styles.mobile}>
+      <View style={isWide ? styles.desktop : styles.mobile}>
+        {showList ? (
           <HabitList
             habits={habits}
             selectedHabitId={selectedHabit?.id}
             today={today}
           />
+        ) : null}
+        {showDetail ? (
           <View style={styles.detailPane}>
             <HabitDetail habit={selectedHabit} />
           </View>
-        </View>
-      ) : (
-        <View style={styles.centered}>
-          <Text>Loading habits...</Text>
-        </View>
-      )}
+        ) : null}
+      </View>
     </Shell>
   );
 }
 
 function getHistoryCellColor(
   day: { completed: boolean; inRange: boolean },
-  isDark: boolean
+  palette: Palette
 ) {
   if (day.completed) {
     return APP_ACCENT_COLOR;
   }
   if (day.inRange) {
-    return borderColor(isDark);
+    return palette.track;
   }
   return "transparent";
 }
@@ -476,7 +639,7 @@ export function WebHabitForm({ habitId }: WebHabitFormProps) {
     resolveHabitCategoryId(existingHabit?.categoryId)
   );
   const [error, setError] = useState<string | null>(null);
-  const isDark = useColorScheme() === "dark";
+  const palette = usePalette();
   const isEditing = Boolean(habitId);
 
   const save = async () => {
@@ -504,16 +667,17 @@ export function WebHabitForm({ habitId }: WebHabitFormProps) {
           style={[
             styles.formPanel,
             {
-              backgroundColor: panelColor(isDark),
-              borderColor: borderColor(isDark),
+              backgroundColor: palette.panel,
+              borderColor: palette.border,
+              boxShadow: palette.shadow,
             },
           ]}
         >
-          <Text style={[styles.title, { color: textColor(isDark) }]}>
+          <Text style={[styles.detailTitle, { color: palette.text }]}>
             {isEditing ? "Edit habit" : "Create habit"}
           </Text>
           {error ? (
-            <Text style={[styles.errorText, { color: "#b91c1c" }]}>
+            <Text style={[styles.errorTextLeft, { color: DANGER_COLOR }]}>
               {error}
             </Text>
           ) : null}
@@ -523,7 +687,15 @@ export function WebHabitForm({ habitId }: WebHabitFormProps) {
             maxLength={MAX_HABIT_NAME_LENGTH}
             onChangeText={setName}
             placeholder="Habit name"
-            style={styles.textField}
+            placeholderTextColor={palette.secondary}
+            style={StyleSheet.flatten([
+              styles.textField,
+              {
+                backgroundColor: palette.fieldBg,
+                borderColor: palette.hairline,
+              },
+            ])}
+            textStyle={{ color: palette.text }}
           />
           <View style={styles.categoryGrid}>
             {HABIT_CATEGORIES.map((category) => {
@@ -532,19 +704,27 @@ export function WebHabitForm({ habitId }: WebHabitFormProps) {
                 <Pressable
                   key={category.id}
                   onPress={() => setCategoryId(category.id)}
-                  style={[
+                  style={(state) => [
                     styles.categoryButton,
                     {
-                      backgroundColor: isSelected
-                        ? `${APP_ACCENT_COLOR}18`
-                        : "transparent",
+                      backgroundColor: selectableBackground(
+                        state,
+                        isSelected,
+                        palette
+                      ),
                       borderColor: isSelected
                         ? APP_ACCENT_COLOR
-                        : borderColor(isDark),
+                        : palette.border,
                     },
                   ]}
                 >
-                  <Text style={{ color: textColor(isDark) }}>
+                  <Text
+                    style={{
+                      color: isSelected ? APP_ACCENT_COLOR : palette.text,
+                      fontSize: 14,
+                      fontWeight: isSelected ? "600" : "400",
+                    }}
+                  >
                     {category.label}
                   </Text>
                 </Pressable>
@@ -552,12 +732,12 @@ export function WebHabitForm({ habitId }: WebHabitFormProps) {
             })}
           </View>
           <View style={styles.actionRow}>
-            <Button
+            <WebButton
               label="Cancel"
               onPress={() => router.back()}
               variant="outlined"
             />
-            <Button label={isEditing ? "Save" : "Create"} onPress={save} />
+            <WebButton label={isEditing ? "Save" : "Create"} onPress={save} />
           </View>
         </View>
       </ScrollView>
@@ -567,11 +747,31 @@ export function WebHabitForm({ habitId }: WebHabitFormProps) {
 
 const styles = StyleSheet.create({
   actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  categoryButton: {
-    borderRadius: 8,
+  authCard: {
+    alignItems: "center",
+    borderRadius: 18,
     borderWidth: 1,
-    paddingHorizontal: 12,
+    gap: 18,
+    maxWidth: 420,
+    padding: 36,
+    width: "100%",
+  },
+  button: {
+    alignItems: "center",
+    borderRadius: 10,
+    justifyContent: "center",
+    paddingHorizontal: 18,
     paddingVertical: 10,
+    userSelect: "none",
+  },
+  buttonDisabled: { opacity: 0.45 },
+  buttonFilledHover: { opacity: 0.88 },
+  buttonLabel: { fontSize: 15, fontWeight: "600", textAlign: "center" },
+  categoryButton: {
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
   },
   categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   centered: {
@@ -579,103 +779,121 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 16,
     justifyContent: "center",
+    padding: 24,
   },
-  checkDot: { borderRadius: 9, borderWidth: 2, height: 18, width: 18 },
-  copy: { fontSize: 15, lineHeight: 21, maxWidth: 460, textAlign: "center" },
+  checkDot: { borderRadius: 10, borderWidth: 2, height: 20, width: 20 },
+  copy: { fontSize: 15, lineHeight: 22, maxWidth: 460, textAlign: "center" },
+  copyLeft: { fontSize: 15, lineHeight: 22 },
   desktop: { flex: 1, flexDirection: "row" },
-  detailContent: { gap: 20, padding: 24 },
+  detailContent: {
+    gap: 22,
+    marginHorizontal: "auto",
+    maxWidth: 820,
+    padding: 28,
+    width: "100%",
+  },
   detailEmpty: {
     alignItems: "center",
     flex: 1,
     gap: 10,
     justifyContent: "center",
+    padding: 24,
   },
   detailHeader: { alignItems: "center", flexDirection: "row", gap: 16 },
   detailPane: { flex: 1 },
+  detailTitle: { fontSize: 26, fontWeight: "700", letterSpacing: -0.4 },
   dialog: {
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    gap: 16,
+    gap: 14,
     maxWidth: 420,
-    padding: 20,
+    padding: 24,
     width: "90%",
   },
   dialogActions: { flexDirection: "row", gap: 12, justifyContent: "flex-end" },
   dialogTitle: { fontSize: 20, fontWeight: "700" },
-  emptyText: { padding: 16, textAlign: "center" },
+  emptyText: { padding: 24, textAlign: "center" },
   errorText: { fontSize: 14, lineHeight: 20, textAlign: "center" },
-  formPage: { alignItems: "center", padding: 24 },
+  errorTextLeft: { fontSize: 14, lineHeight: 20 },
+  formPage: { alignItems: "center", padding: 28 },
   formPanel: {
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
-    gap: 18,
+    gap: 20,
     maxWidth: 680,
-    padding: 20,
+    padding: 28,
     width: "100%",
   },
   habitRow: {
     alignItems: "center",
     borderRadius: 10,
-    borderWidth: 1,
     flexDirection: "row",
     gap: 12,
-    padding: 14,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
   },
   header: {
     alignItems: "center",
-    borderBottomWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
+    height: 56,
     justifyContent: "space-between",
-    padding: 16,
+    paddingHorizontal: 20,
   },
-  headerTitle: { fontSize: 18, fontWeight: "700" },
-  historyCell: { borderRadius: 3, height: 11, width: 11 },
-  historyColumn: { gap: 3 },
-  historyGrid: { flexDirection: "row", gap: 3, paddingVertical: 6 },
-  input: {
-    backgroundColor: "#ffffff",
-    borderColor: "#e5e7eb",
-    borderRadius: 8,
-    borderWidth: 1,
-    height: 40,
-    paddingHorizontal: 12,
-    width: "100%",
+  headerTitle: { fontSize: 19, fontWeight: "700", letterSpacing: -0.3 },
+  headerTitleButton: { paddingVertical: 4 },
+  historyCell: { borderRadius: 3, height: 12, width: 12 },
+  historyColumn: { gap: 4 },
+  historyGrid: { flexDirection: "row", gap: 4, paddingVertical: 4 },
+  listContent: { gap: 4, paddingBottom: 16, paddingHorizontal: 10 },
+  listPane: {
+    borderRightWidth: StyleSheet.hairlineWidth,
+    flexBasis: 340,
+    maxWidth: 400,
   },
-  listContent: { gap: 10, padding: 16 },
-  listPane: { borderRightWidth: 1, flexBasis: 360, maxWidth: 420 },
-  listToolbar: { gap: 10, padding: 16 },
+  listToolbar: { flexDirection: "row", gap: 10, padding: 14 },
   metric: {
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1,
     flex: 1,
-    gap: 6,
+    gap: 4,
     minWidth: 140,
     padding: 16,
   },
   metricLabel: { fontSize: 13 },
-  metricValue: { fontSize: 22, fontWeight: "700" },
+  metricValue: { fontSize: 24, fontWeight: "700", letterSpacing: -0.4 },
   miniDot: { borderRadius: 3, height: 6, width: 6 },
   miniStreak: { flexDirection: "row", gap: 3 },
   mobile: { flex: 1 },
   modalBackdrop: {
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.42)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     flex: 1,
     justifyContent: "center",
+    padding: 24,
   },
-  panel: { borderRadius: 12, borderWidth: 1, gap: 12, padding: 16 },
+  panel: { borderRadius: 14, borderWidth: 1, gap: 14, padding: 18 },
   rowMain: { flex: 1, gap: 6, minWidth: 0 },
-  rowTitle: { fontSize: 15, fontWeight: "600" },
-  sectionTitle: { fontSize: 16, fontWeight: "700" },
+  rowTitle: { fontSize: 15 },
+  searchField: {
+    borderRadius: 9,
+    flex: 1,
+    height: 38,
+    paddingHorizontal: 12,
+  },
+  sectionTitle: { fontSize: 12, fontWeight: "700", letterSpacing: 0.6 },
   statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
   textField: {
-    backgroundColor: "#ffffff",
-    borderColor: "#d1d5db",
-    borderRadius: 8,
+    borderRadius: 10,
     borderWidth: 1,
-    height: 44,
-    paddingHorizontal: 12,
+    height: 46,
+    paddingHorizontal: 14,
     width: "100%",
   },
-  title: { fontSize: 28, fontWeight: "700", textAlign: "center" },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    textAlign: "center",
+  },
 });
