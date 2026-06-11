@@ -108,7 +108,7 @@ export default function HomeScreen() {
                     ]}
                     name={checkedToday ? CHECK_ICON : CIRCLE_ICON}
                     onPress={() => handleToggle(habit.id)}
-                    size={32}
+                    size={22}
                   />
                 }
                 onPress={() => router.push(`/habit/${habit.id}`)}

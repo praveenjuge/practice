@@ -22,7 +22,10 @@ export function WeeklyStreakBoxes({ days }: WeeklyStreakBoxesProps) {
   return (
     <ScrollView
       axes="horizontal"
-      modifiers={[defaultScrollAnchor("trailing")]}
+      modifiers={[
+        defaultScrollAnchor("trailing"),
+        frame({ maxWidth: Number.POSITIVE_INFINITY }),
+      ]}
       showsIndicators={false}
     >
       <HStack spacing={BOX_SPACING}>
