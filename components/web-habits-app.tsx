@@ -210,8 +210,23 @@ function Shell({
   children: React.ReactNode;
   title: string;
 }) {
-  const { isSignedIn } = useAuth();
+  const { isLoaded, isSignedIn } = useAuth();
   const palette = usePalette();
+
+  // While Clerk restores the persisted session, isSignedIn is briefly false.
+  // Render a neutral loading state so the sign-in screen doesn't flash.
+  if (!isLoaded) {
+    return (
+      <Host
+        style={{ backgroundColor: palette.page, flex: 1 }}
+        useViewportSizeMeasurement
+      >
+        <View style={styles.centered}>
+          <Text style={{ color: palette.secondary }}>Loading...</Text>
+        </View>
+      </Host>
+    );
+  }
 
   if (!isSignedIn) {
     return <AuthGate />;

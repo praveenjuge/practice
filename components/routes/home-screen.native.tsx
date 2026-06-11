@@ -4,7 +4,7 @@ import { Host, Icon, List, ListItem } from "@expo/ui";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
-import { Alert, View } from "react-native";
+import { ActivityIndicator, Alert, View } from "react-native";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import {
   getRollingWeekCheckins,
@@ -23,11 +23,36 @@ import { NativeAuthEntry } from "./native-auth-entry";
 
 export default function HomeScreen() {
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
-  if (!(authLoaded && isSignedIn)) {
+
+  // Clerk reports isSignedIn === false until the persisted session is
+  // restored. Wait for authLoaded before deciding, otherwise the sign-in
+  // screen flashes on every cold start even when already signed in.
+  if (!authLoaded) {
+    return <AuthLoadingScreen />;
+  }
+
+  if (!isSignedIn) {
     return <NativeAuthEntry />;
   }
 
   return <SignedInHomeScreen />;
+}
+
+function AuthLoadingScreen() {
+  return (
+    <>
+      <Stack.Screen options={{ headerShown: false, title: "Practice" }} />
+      <View
+        style={{
+          alignItems: "center",
+          flex: 1,
+          justifyContent: "center",
+        }}
+      >
+        <ActivityIndicator color={APP_ACCENT_COLOR} size="large" />
+      </View>
+    </>
+  );
 }
 
 function SignedInHomeScreen() {
