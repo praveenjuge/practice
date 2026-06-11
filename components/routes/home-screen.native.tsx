@@ -1,6 +1,5 @@
 import { useAuth } from "@clerk/expo";
 import { UserButton } from "@clerk/expo/native";
-import AddToolbarIcon from "@expo/material-symbols/add.xml";
 import { Host, Icon, List, ListItem } from "@expo/ui";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack } from "expo-router";
@@ -15,7 +14,6 @@ import {
 import {
   ADD_ICON,
   CHECK_ICON,
-  CHEVRON_RIGHT_ICON,
   CIRCLE_ICON,
   SYNC_ICON,
   WARNING_ICON,
@@ -101,8 +99,7 @@ function SignedInHomeScreen() {
         </Stack.Toolbar.View>
         <Stack.Toolbar.Button
           disabled={!isOnline}
-          icon={AddToolbarIcon}
-          iconRenderingMode="template"
+          icon="plus"
           onPress={() => router.push("/habit/new")}
         />
       </Stack.Toolbar>
@@ -161,9 +158,6 @@ function SignedInHomeScreen() {
                     days={getRollingWeekCheckins(habit.checkins, today, 30)}
                     onPress={() => router.push(`/habit/${habit.id}`)}
                   />
-                }
-                trailing={
-                  <Icon color="#8b949e" name={CHEVRON_RIGHT_ICON} size={18} />
                 }
               >
                 {habit.name}
