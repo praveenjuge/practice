@@ -2,6 +2,7 @@ import { Host, HStack, List, Spacer, Text } from "@expo/ui/swift-ui";
 import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
+import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitForm, type HabitFormInput } from "../habit-form";
 import { useHabits } from "../habits-store";
 
@@ -80,6 +81,7 @@ export default function EditHabitScreen() {
           disabled={isHeaderDisabled}
           icon="checkmark"
           onPress={handleHeaderSubmit}
+          tintColor={APP_ACCENT_COLOR}
           variant="done"
         />
       </Stack.Toolbar>

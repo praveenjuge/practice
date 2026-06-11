@@ -1,5 +1,6 @@
 import { UserButton } from "@clerk/expo/native";
 import { Host, Icon, List, ListItem } from "@expo/ui";
+import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
@@ -99,17 +100,21 @@ export default function HomeScreen() {
                     accessibilityLabel={
                       checkedToday ? "Mark incomplete" : "Mark complete"
                     }
-                    color={checkedToday ? APP_ACCENT_COLOR : "#8b949e"}
+                    color={checkedToday ? APP_ACCENT_COLOR : "#c7c7cc"}
+                    modifiers={[
+                      foregroundStyle(
+                        checkedToday ? APP_ACCENT_COLOR : "#c7c7cc"
+                      ),
+                    ]}
                     name={checkedToday ? CHECK_ICON : CIRCLE_ICON}
                     onPress={() => handleToggle(habit.id)}
-                    size={24}
+                    size={32}
                   />
                 }
                 onPress={() => router.push(`/habit/${habit.id}`)}
                 supportingText={
                   <WeeklyStreakBoxes
                     days={getRollingWeekCheckins(habit.checkins, today, 30)}
-                    onPress={() => router.push(`/habit/${habit.id}`)}
                   />
                 }
               >

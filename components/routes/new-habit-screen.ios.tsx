@@ -1,5 +1,6 @@
 import { router, Stack } from "expo-router";
 import { useCallback, useState } from "react";
+import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitForm, type HabitFormInput } from "../habit-form";
 import { useHabits } from "../habits-store";
 
@@ -43,6 +44,7 @@ export default function NewHabitScreen() {
           disabled={isHeaderDisabled}
           icon="checkmark"
           onPress={handleHeaderSubmit}
+          tintColor={APP_ACCENT_COLOR}
           variant="done"
         />
       </Stack.Toolbar>
