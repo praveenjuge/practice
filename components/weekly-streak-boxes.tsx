@@ -3,6 +3,7 @@ import {
   defaultScrollAnchor,
   foregroundStyle,
   frame,
+  layoutPriority,
 } from "@expo/ui/swift-ui/modifiers";
 import { PlatformColor } from "react-native";
 import { APP_ACCENT_COLOR } from "./app-colors";
@@ -25,6 +26,7 @@ export function WeeklyStreakBoxes({ days }: WeeklyStreakBoxesProps) {
       modifiers={[
         defaultScrollAnchor("trailing"),
         frame({ maxWidth: Number.POSITIVE_INFINITY }),
+        layoutPriority(1),
       ]}
       showsIndicators={false}
     >
