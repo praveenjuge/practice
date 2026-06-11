@@ -44,11 +44,6 @@ For iOS development:
 bun run ios
 ```
 
-## Notes
-
-This repository is shared as the real source for Practice, not as a general
-starter template. Issues are welcome and handled on a best-effort basis.
-
 ## License
 
 MIT

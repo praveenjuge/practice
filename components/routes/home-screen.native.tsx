@@ -1,6 +1,14 @@
 import { UserButton } from "@clerk/expo/native";
 import { Host, Icon, List, ListItem } from "@expo/ui";
-import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
+import { Button, HStack, Text, VStack } from "@expo/ui/swift-ui";
+import {
+  buttonStyle,
+  contentShape,
+  foregroundStyle,
+  frame,
+  layoutPriority,
+  shapes,
+} from "@expo/ui/swift-ui/modifiers";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack } from "expo-router";
 import { useState } from "react";
@@ -13,6 +21,59 @@ import {
 } from "../habits-store";
 import { ADD_ICON, CHECK_ICON, CIRCLE_ICON } from "../native-icons";
 import { WeeklyStreakBoxes } from "../weekly-streak-boxes";
+
+interface HabitRowProps {
+  checkedToday: boolean;
+  name: string;
+  onOpen: () => void;
+  onToggle: () => void;
+  streakDays: ReturnType<typeof getRollingWeekCheckins>;
+}
+
+function HabitRow({
+  checkedToday,
+  name,
+  onOpen,
+  onToggle,
+  streakDays,
+}: HabitRowProps) {
+  const iconColor = checkedToday ? APP_ACCENT_COLOR : "#c7c7cc";
+
+  return (
+    <Button modifiers={[buttonStyle("plain")]} onPress={onOpen}>
+      <HStack
+        alignment="center"
+        modifiers={[
+          contentShape(shapes.rectangle()),
+          frame({ maxWidth: Number.POSITIVE_INFINITY }),
+        ]}
+        spacing={12}
+      >
+        <Icon
+          accessibilityLabel={
+            checkedToday ? "Mark incomplete" : "Mark complete"
+          }
+          color={iconColor}
+          modifiers={[foregroundStyle(iconColor)]}
+          name={checkedToday ? CHECK_ICON : CIRCLE_ICON}
+          onPress={onToggle}
+          size={22}
+        />
+        <VStack
+          alignment="leading"
+          modifiers={[
+            frame({ maxWidth: Number.POSITIVE_INFINITY }),
+            layoutPriority(1),
+          ]}
+          spacing={2}
+        >
+          <Text>{name}</Text>
+          <WeeklyStreakBoxes days={streakDays} />
+        </VStack>
+      </HStack>
+    </Button>
+  );
+}
 
 export default function HomeScreen() {
   const { habits, isLoaded, today, toggleCheckInToday } = useHabits();
@@ -93,33 +154,14 @@ export default function HomeScreen() {
           {filteredHabits.map((habit) => {
             const checkedToday = hasCheckInToday(habit.checkins, today);
             return (
-              <ListItem
+              <HabitRow
+                checkedToday={checkedToday}
                 key={habit.id}
-                leading={
-                  <Icon
-                    accessibilityLabel={
-                      checkedToday ? "Mark incomplete" : "Mark complete"
-                    }
-                    color={checkedToday ? APP_ACCENT_COLOR : "#c7c7cc"}
-                    modifiers={[
-                      foregroundStyle(
-                        checkedToday ? APP_ACCENT_COLOR : "#c7c7cc"
-                      ),
-                    ]}
-                    name={checkedToday ? CHECK_ICON : CIRCLE_ICON}
-                    onPress={() => handleToggle(habit.id)}
-                    size={22}
-                  />
-                }
-                onPress={() => router.push(`/habit/${habit.id}`)}
-                supportingText={
-                  <WeeklyStreakBoxes
-                    days={getRollingWeekCheckins(habit.checkins, today, 30)}
-                  />
-                }
-              >
-                {habit.name}
-              </ListItem>
+                name={habit.name}
+                onOpen={() => router.push(`/habit/${habit.id}`)}
+                onToggle={() => handleToggle(habit.id)}
+                streakDays={getRollingWeekCheckins(habit.checkins, today, 30)}
+              />
             );
           })}
         </List>
