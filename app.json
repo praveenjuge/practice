@@ -53,6 +53,15 @@
       }
     },
     "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#34c759",
+        "foregroundImage": "./assets/icon.png"
+      },
+      "blockedPermissions": [
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
+      ],
+      "icon": "./assets/icon.png",
       "package": "com.praveenjuge.practice"
     },
     "web": {

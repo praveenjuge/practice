@@ -1,23 +1,13 @@
 import { useAuth } from "@clerk/expo";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
 import type React from "react";
 import {
   createContext,
   useCallback,
   useContext,
-  useEffect,
   useMemo,
   useState,
 } from "react";
-import { Platform } from "react-native";
-import {
-  CloudStorage,
-  CloudStorageError,
-  CloudStorageErrorCode,
-  CloudStorageProvider,
-  CloudStorageScope,
-} from "react-native-cloud-storage";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import {
@@ -25,10 +15,6 @@ import {
   isValidHabitCategoryId,
   resolveHabitCategoryId,
 } from "./habit-categories";
-
-if (Platform.OS === "ios") {
-  CloudStorage.setProvider(CloudStorageProvider.ICloud);
-}
 
 export interface Habit {
   categoryId: HabitCategoryId;
@@ -68,14 +54,7 @@ interface HabitsContextValue {
 }
 
 const HabitsContext = createContext<HabitsContextValue | null>(null);
-
-const DATABASE_NAME = "practice.db";
-const DATABASE_VERSION = 1;
-const HABITS_FILE = "/practice/habits.json";
-const STORAGE_SCOPE = CloudStorageScope.AppData;
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const CLAIM_KEY = "claim_key";
-const ICLOUD_IMPORT_DONE_KEY = "icloud_import_done_v1";
 export const MAX_HABIT_NAME_LENGTH = 120;
 
 const pad2 = (value: number) => String(value).padStart(2, "0");
@@ -139,16 +118,6 @@ const normalizeHabitCategoryId = (categoryId?: unknown) => {
   }
   return categoryId;
 };
-
-const createId = () =>
-  `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-
-const createClaimKey = () => `claim-${createId()}`;
-
-const isNotFoundError = (error: unknown) =>
-  error instanceof CloudStorageError &&
-  (error.code === CloudStorageErrorCode.FILE_NOT_FOUND ||
-    error.code === CloudStorageErrorCode.DIRECTORY_NOT_FOUND);
 
 const streakFrom = (start: string, set: Set<string>) => {
   let count = 0;
@@ -286,191 +255,6 @@ export const getStreaks = (
   return { current, best };
 };
 
-const sanitizeHabits = (raw: unknown) => {
-  if (!Array.isArray(raw)) {
-    return [];
-  }
-  const today = getTodayString();
-  const sanitized: Habit[] = [];
-  for (const item of raw) {
-    if (!item || typeof item !== "object") {
-      continue;
-    }
-    const record = item as Record<string, unknown>;
-    if (typeof record.id !== "string" || typeof record.name !== "string") {
-      continue;
-    }
-    const name = record.name.trim();
-    if (!name) {
-      continue;
-    }
-    const createdAt =
-      typeof record.createdAt === "string" &&
-      isValidDateString(record.createdAt)
-        ? record.createdAt
-        : today;
-    const checkins = Array.isArray(record.checkins)
-      ? normalizeDateArray(
-          record.checkins.filter((v): v is string => typeof v === "string")
-        )
-      : [];
-    sanitized.push({
-      id: record.id,
-      name,
-      categoryId: resolveHabitCategoryId(
-        typeof record.categoryId === "string" ? record.categoryId : null
-      ),
-      createdAt,
-      checkins,
-    });
-  }
-  return sanitized;
-};
-
-const parseHabitsContent = (content: string) => {
-  if (!content.trim()) {
-    return [];
-  }
-  const parsed = JSON.parse(content);
-  if (Array.isArray(parsed)) {
-    return sanitizeHabits(parsed);
-  }
-  if (
-    parsed &&
-    typeof parsed === "object" &&
-    Array.isArray((parsed as { habits?: unknown }).habits)
-  ) {
-    return sanitizeHabits((parsed as { habits: unknown }).habits);
-  }
-  return [];
-};
-
-const openDatabase = async () => {
-  const db = await openDatabaseAsync(DATABASE_NAME);
-  const current = await db.getFirstAsync<{ user_version: number }>(
-    "PRAGMA user_version"
-  );
-  if ((current?.user_version ?? 0) < DATABASE_VERSION) {
-    await db.execAsync(`
-      PRAGMA journal_mode = WAL;
-      CREATE TABLE IF NOT EXISTS habits (
-        id TEXT PRIMARY KEY NOT NULL,
-        name TEXT NOT NULL,
-        category_id TEXT NOT NULL,
-        created_at TEXT NOT NULL
-      );
-      CREATE TABLE IF NOT EXISTS checkins (
-        habit_id TEXT NOT NULL,
-        date TEXT NOT NULL,
-        PRIMARY KEY (habit_id, date)
-      );
-      CREATE TABLE IF NOT EXISTS app_meta (
-        key TEXT PRIMARY KEY NOT NULL,
-        value TEXT NOT NULL
-      );
-      PRAGMA user_version = ${DATABASE_VERSION};
-    `);
-  }
-  const claim = await db.getFirstAsync<{ value: string }>(
-    "SELECT value FROM app_meta WHERE key = ?",
-    CLAIM_KEY
-  );
-  if (!claim) {
-    await db.runAsync(
-      "INSERT INTO app_meta (key, value) VALUES (?, ?)",
-      CLAIM_KEY,
-      createClaimKey()
-    );
-  }
-  return db;
-};
-
-const getMeta = (db: SQLiteDatabase, key: string) =>
-  db.getFirstAsync<{ value: string }>(
-    "SELECT value FROM app_meta WHERE key = ?",
-    key
-  );
-
-const setMeta = (db: SQLiteDatabase, key: string, value: string) =>
-  db.runAsync(
-    "INSERT OR REPLACE INTO app_meta (key, value) VALUES (?, ?)",
-    key,
-    value
-  );
-
-const readLocalHabits = async (db: SQLiteDatabase) => {
-  const habits = await db.getAllAsync<{
-    category_id: string;
-    created_at: string;
-    id: string;
-    name: string;
-  }>(
-    "SELECT id, name, category_id, created_at FROM habits ORDER BY created_at ASC"
-  );
-  const checkins = await db.getAllAsync<{ date: string; habit_id: string }>(
-    "SELECT habit_id, date FROM checkins ORDER BY date ASC"
-  );
-  const byHabit = new Map<string, string[]>();
-  for (const checkin of checkins) {
-    byHabit.set(checkin.habit_id, [
-      ...(byHabit.get(checkin.habit_id) ?? []),
-      checkin.date,
-    ]);
-  }
-  return habits.map((habit) => ({
-    id: habit.id,
-    name: habit.name,
-    categoryId: resolveHabitCategoryId(habit.category_id),
-    createdAt: habit.created_at,
-    checkins: byHabit.get(habit.id) ?? [],
-  }));
-};
-
-const insertLocalHabits = async (db: SQLiteDatabase, habits: Habit[]) => {
-  for (const habit of habits) {
-    await db.runAsync(
-      "INSERT OR IGNORE INTO habits (id, name, category_id, created_at) VALUES (?, ?, ?, ?)",
-      habit.id,
-      habit.name,
-      habit.categoryId,
-      habit.createdAt
-    );
-    for (const date of normalizeDateArray(habit.checkins)) {
-      await db.runAsync(
-        "INSERT OR IGNORE INTO checkins (habit_id, date) VALUES (?, ?)",
-        habit.id,
-        date
-      );
-    }
-  }
-};
-
-const clearLocalHabits = async (db: SQLiteDatabase) => {
-  await db.withTransactionAsync(async () => {
-    await db.runAsync("DELETE FROM checkins");
-    await db.runAsync("DELETE FROM habits");
-    await setMeta(db, CLAIM_KEY, createClaimKey());
-  });
-};
-
-const readLegacyICloudHabits = async () => {
-  if (Platform.OS !== "ios") {
-    return [];
-  }
-  const exists = await CloudStorage.exists(HABITS_FILE, STORAGE_SCOPE);
-  if (!exists) {
-    return [];
-  }
-  try {
-    await CloudStorage.triggerSync(HABITS_FILE, STORAGE_SCOPE);
-  } catch {
-    // Best-effort only; the next read may still return the local iCloud copy.
-  }
-  return parseHabitsContent(
-    await CloudStorage.readFile(HABITS_FILE, STORAGE_SCOPE)
-  );
-};
-
 const useOnlineHabits = (enabled: boolean) =>
   useQuery(api.habits.list, enabled ? {} : "skip");
 
@@ -487,219 +271,45 @@ const toOnlineHabitId = (id: string) => id as Id<"habits">;
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const { isSignedIn } = useAuth();
   const { isAuthenticated, isLoading: convexAuthLoading } = useConvexAuth();
-  const mode: StorageMode = isSignedIn ? "signedIn" : "anonymous";
   const onlineHabits = useOnlineHabits(isAuthenticated);
   const createOnlineHabit = useMutation(api.habits.create);
   const updateOnlineHabit = useMutation(api.habits.update);
   const deleteOnlineHabit = useMutation(api.habits.remove);
   const toggleOnlineCheckin = useMutation(api.habits.toggleCheckin);
-  const claimFromLocal = useMutation(api.habits.claimFromLocal);
-
-  const [db, setDb] = useState<SQLiteDatabase | null>(null);
-  const [localHabits, setLocalHabits] = useState<Habit[]>([]);
-  const [localLoaded, setLocalLoaded] = useState(false);
-  const [legacyImportReady, setLegacyImportReady] = useState(false);
-  const [syncState, setSyncState] = useState<SyncState>("idle");
   const [error, setError] = useState<string | null>(null);
-  const today = mode === "signedIn" ? getUtcTodayString() : getTodayString();
+  const mode: StorageMode = isSignedIn ? "signedIn" : "anonymous";
+  const today = getUtcTodayString();
 
-  const loadLocal = useCallback(async (database: SQLiteDatabase) => {
-    setLocalHabits(await readLocalHabits(database));
-    setLocalLoaded(true);
-  }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    openDatabase()
-      .then(async (database) => {
-        if (cancelled) {
-          return;
-        }
-        setDb(database);
-        await loadLocal(database);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setError("Unable to open local storage.");
-          setLocalLoaded(true);
-          setLegacyImportReady(true);
-        }
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [loadLocal]);
-
-  useEffect(() => {
-    if (!db || legacyImportReady) {
-      return;
+  const requireOnline = useCallback(() => {
+    if (!isAuthenticated) {
+      throw new Error("Sign in to manage habits.");
     }
-    let cancelled = false;
-    const importLegacyData = async () => {
-      const done = await getMeta(db, ICLOUD_IMPORT_DONE_KEY);
-      if (done) {
-        setLegacyImportReady(true);
-        return;
-      }
-      try {
-        const imported = await readLegacyICloudHabits();
-        await db.withTransactionAsync(async () => {
-          await insertLocalHabits(db, imported);
-        });
-        await setMeta(db, ICLOUD_IMPORT_DONE_KEY, "1");
-        if (!cancelled) {
-          await loadLocal(db);
-        }
-      } catch (importError) {
-        if (!isNotFoundError(importError)) {
-          setError("Unable to import older iCloud habits.");
-        }
-      } finally {
-        if (!cancelled) {
-          setLegacyImportReady(true);
-        }
-      }
-    };
-    importLegacyData();
-    return () => {
-      cancelled = true;
-    };
-  }, [db, legacyImportReady, loadLocal]);
-
-  useEffect(() => {
-    if (
-      !(db && isAuthenticated && localLoaded && legacyImportReady) ||
-      localHabits.length === 0
-    ) {
-      return;
+    if (onlineHabits === undefined) {
+      throw new Error("Reconnect before changing habits.");
     }
-    let cancelled = false;
-    const claim = async () => {
-      setSyncState("claiming");
-      try {
-        const claimKey =
-          (await getMeta(db, CLAIM_KEY))?.value ?? createClaimKey();
-        await claimFromLocal({ habits: localHabits, importKey: claimKey });
-        await clearLocalHabits(db);
-        if (!cancelled) {
-          setLocalHabits([]);
-          setError(null);
-          setSyncState("online");
-        }
-      } catch {
-        if (!cancelled) {
-          setError(
-            "Unable to store local habits online. Your local data is still safe."
-          );
-          setSyncState("error");
-        }
-      }
-    };
-    claim();
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    claimFromLocal,
-    db,
-    isAuthenticated,
-    legacyImportReady,
-    localHabits,
-    localLoaded,
-  ]);
-
-  useEffect(() => {
-    if (mode === "anonymous") {
-      setSyncState("idle");
-      setError(null);
-      return;
-    }
-    if (
-      convexAuthLoading ||
-      syncState === "claiming" ||
-      syncState === "error"
-    ) {
-      return;
-    }
-    setSyncState(onlineHabits ? "online" : "offline");
-  }, [convexAuthLoading, mode, onlineHabits, syncState]);
-
-  const reload = useCallback(async () => {
-    if (mode === "anonymous" && db) {
-      await loadLocal(db);
-    }
-  }, [db, loadLocal, mode]);
-
-  const saveLocalHabits = useCallback(
-    async (nextHabits: Habit[]) => {
-      if (!db) {
-        throw new Error("Local storage is not ready.");
-      }
-      await db.withTransactionAsync(async () => {
-        await db.runAsync("DELETE FROM checkins");
-        await db.runAsync("DELETE FROM habits");
-        await insertLocalHabits(db, nextHabits);
-      });
-      setLocalHabits(nextHabits);
-    },
-    [db]
-  );
+  }, [isAuthenticated, onlineHabits]);
 
   const addHabit = useCallback(
     async (input: { name: string; categoryId?: HabitCategoryId }) => {
-      const name = normalizeHabitName(input.name);
-      const categoryId = normalizeHabitCategoryId(input.categoryId);
-      if (mode === "signedIn") {
-        await createOnlineHabit({
-          name,
-          categoryId,
-          createdAt: getUtcTodayString(),
-        });
-        return;
-      }
-      await saveLocalHabits([
-        ...localHabits,
-        {
-          id: createId(),
-          name,
-          categoryId,
-          createdAt: getTodayString(),
-          checkins: [],
-        },
-      ]);
+      requireOnline();
+      await createOnlineHabit({
+        name: normalizeHabitName(input.name),
+        categoryId: normalizeHabitCategoryId(input.categoryId),
+        createdAt: getUtcTodayString(),
+      });
     },
-    [createOnlineHabit, localHabits, mode, saveLocalHabits]
+    [createOnlineHabit, requireOnline]
   );
 
   const toggleCheckInToday = useCallback(
     async (id: string) => {
-      if (mode === "signedIn") {
-        await toggleOnlineCheckin({
-          habitId: toOnlineHabitId(id),
-          date: getUtcTodayString(),
-        });
-        return;
-      }
-      let didUpdate = false;
-      const nextHabits = localHabits.map((habit) => {
-        if (habit.id !== id) {
-          return habit;
-        }
-        didUpdate = true;
-        const hasToday = habit.checkins.includes(today);
-        return {
-          ...habit,
-          checkins: hasToday
-            ? habit.checkins.filter((checkin) => checkin !== today)
-            : normalizeDateArray([...habit.checkins, today]),
-        };
+      requireOnline();
+      await toggleOnlineCheckin({
+        habitId: toOnlineHabitId(id),
+        date: getUtcTodayString(),
       });
-      if (!didUpdate) {
-        throw new Error("Habit not found.");
-      }
-      await saveLocalHabits(nextHabits);
     },
-    [localHabits, mode, saveLocalHabits, today, toggleOnlineCheckin]
+    [requireOnline, toggleOnlineCheckin]
   );
 
   const updateHabit = useCallback(
@@ -707,60 +317,43 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
       id: string,
       input: { name: string; categoryId: HabitCategoryId }
     ) => {
-      const name = normalizeHabitName(input.name);
-      const categoryId = normalizeHabitCategoryId(input.categoryId);
-      if (mode === "signedIn") {
-        await updateOnlineHabit({
-          habitId: toOnlineHabitId(id),
-          name,
-          categoryId,
-        });
-        return;
-      }
-      let didUpdate = false;
-      const nextHabits = localHabits.map((habit) => {
-        if (habit.id !== id) {
-          return habit;
-        }
-        didUpdate = true;
-        return { ...habit, name, categoryId };
+      requireOnline();
+      await updateOnlineHabit({
+        habitId: toOnlineHabitId(id),
+        name: normalizeHabitName(input.name),
+        categoryId: normalizeHabitCategoryId(input.categoryId),
       });
-      if (!didUpdate) {
-        throw new Error("Habit not found.");
-      }
-      await saveLocalHabits(nextHabits);
     },
-    [localHabits, mode, saveLocalHabits, updateOnlineHabit]
+    [requireOnline, updateOnlineHabit]
   );
 
   const deleteHabit = useCallback(
     async (id: string) => {
-      if (mode === "signedIn") {
-        await deleteOnlineHabit({ habitId: toOnlineHabitId(id) });
-        return;
-      }
-      const nextHabits = localHabits.filter((habit) => habit.id !== id);
-      if (nextHabits.length === localHabits.length) {
-        throw new Error("Habit not found.");
-      }
-      await saveLocalHabits(nextHabits);
+      requireOnline();
+      await deleteOnlineHabit({ habitId: toOnlineHabitId(id) });
     },
-    [deleteOnlineHabit, localHabits, mode, saveLocalHabits]
+    [deleteOnlineHabit, requireOnline]
   );
 
-  const habits =
-    mode === "signedIn"
-      ? normalizeOnlineHabits(onlineHabits ?? [])
-      : localHabits;
-  const isLoaded =
-    mode === "anonymous"
-      ? localLoaded && legacyImportReady
-      : onlineHabits !== undefined;
+  const reload = useCallback(() => {
+    setError(null);
+    return Promise.resolve();
+  }, []);
+
+  let syncState: SyncState = "offline";
+  if (mode === "anonymous") {
+    syncState = "idle";
+  } else if (onlineHabits !== undefined) {
+    syncState = "online";
+  }
 
   const value = useMemo(
     () => ({
-      habits,
-      isLoaded,
+      habits: isAuthenticated ? normalizeOnlineHabits(onlineHabits ?? []) : [],
+      isLoaded:
+        mode === "anonymous" || convexAuthLoading
+          ? !convexAuthLoading
+          : onlineHabits !== undefined,
       mode,
       syncState,
       today,
@@ -774,11 +367,12 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       addHabit,
+      convexAuthLoading,
       deleteHabit,
       error,
-      habits,
-      isLoaded,
+      isAuthenticated,
       mode,
+      onlineHabits,
       reload,
       syncState,
       today,

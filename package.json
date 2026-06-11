@@ -3,7 +3,8 @@
   "version": "1.2.0",
   "main": "expo-router/entry",
   "scripts": {
-    "android": "expo run:android",
+    "android": "JAVA_HOME=${JAVA_HOME:-/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home} ANDROID_HOME=${ANDROID_HOME:-$HOME/Library/Android/sdk} expo run:android",
+    "build:android:internal": "eas build --platform android --profile preview",
     "build:local": "eas build --platform ios --local",
     "build:submit": "eas submit --platform ios",
     "check": "ultracite check",
@@ -24,25 +25,25 @@
   "dependencies": {
     "@clerk/expo": "^3.2.16",
     "@clerk/expo-passkeys": "^1.0.29",
-    "@expo/ui": "~56.0.13",
+    "@expo/material-symbols": "^0.1.1",
+    "@expo/ui": "~56.0.14",
     "@types/react": "^19.2.14",
     "convex": "^1.39.1",
     "expo": "~56.0.4",
     "expo-apple-authentication": "~56.0.4",
-    "expo-auth-session": "~56.0.11",
-    "expo-build-properties": "~56.0.14",
-    "expo-constants": "~56.0.15",
-    "expo-crypto": "~56.0.3",
-    "expo-dev-client": "~56.0.15",
+    "expo-auth-session": "~56.0.12",
+    "expo-build-properties": "~56.0.15",
+    "expo-constants": "~56.0.16",
+    "expo-crypto": "~56.0.4",
+    "expo-dev-client": "~56.0.16",
     "expo-font": "~56.0.5",
     "expo-haptics": "~56.0.3",
-    "expo-linking": "~56.0.11",
+    "expo-linking": "~56.0.12",
     "expo-local-authentication": "~56.0.4",
-    "expo-router": "~56.2.6",
+    "expo-router": "~56.2.7",
     "expo-secure-store": "~56.0.4",
     "expo-sqlite": "~56.0.4",
     "expo-status-bar": "~56.0.4",
-    "expo-symbols": "~56.0.5",
     "expo-web-browser": "~56.0.5",
     "react": "19.2.3",
     "react-dom": "19.2.3",
@@ -59,8 +60,5 @@
     "husky": "^9.1.7",
     "ultracite": "^7.6.3",
     "wrangler": "^4.94.0"
-  },
-  "overrides": {
-    "expo-constants": "~56.0.15"
   }
 }

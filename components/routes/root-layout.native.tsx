@@ -42,27 +42,18 @@ export default function RootLayout() {
 function ThemedLayout() {
   const { resolvedScheme } = useThemePreference();
   const isDark = resolvedScheme === "dark";
-  const themedNavigation = isDark
-    ? {
-        ...DarkTheme,
-        colors: { ...DarkTheme.colors, primary: APP_ACCENT_COLOR },
-      }
-    : {
-        ...DefaultTheme,
-        colors: { ...DefaultTheme.colors, primary: APP_ACCENT_COLOR },
-      };
+  const baseTheme = isDark ? DarkTheme : DefaultTheme;
+  const themedNavigation = {
+    ...baseTheme,
+    colors: { ...baseTheme.colors, primary: APP_ACCENT_COLOR },
+  };
 
   return (
     <ThemeProvider value={themedNavigation}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(home)" />
-        <Stack.Screen
-          name="(auth)"
-          options={{
-            presentation: "modal",
-          }}
-        />
+        <Stack.Screen name="(auth)" options={{ presentation: "modal" }} />
       </Stack>
     </ThemeProvider>
   );

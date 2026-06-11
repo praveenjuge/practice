@@ -1,27 +1,16 @@
 import {
   BottomSheet,
   Button,
-  Group,
+  FieldGroup,
   Host,
-  HStack,
-  Image,
   List,
-  Section,
-  Spacer,
+  ListItem,
   Text,
-  TextField,
+  TextInput,
   useNativeState,
-} from "@expo/ui/swift-ui";
-import {
-  buttonStyle,
-  foregroundStyle,
-  presentationDetents,
-  presentationDragIndicator,
-  tint,
-} from "@expo/ui/swift-ui/modifiers";
+} from "@expo/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Alert, PlatformColor } from "react-native";
-import { APP_ACCENT_COLOR } from "./app-colors";
+import { Alert } from "react-native";
 import {
   getHabitCategory,
   HABIT_CATEGORIES,
@@ -69,11 +58,12 @@ function NativeTextInput({
   const text = useNativeState(initialValue);
 
   return (
-    <TextField
+    <TextInput
       autoFocus={autoFocus}
-      onTextChange={onTextChange}
+      onChangeText={onTextChange}
       placeholder={placeholder}
-      text={text}
+      returnKeyType="done"
+      value={text}
     />
   );
 }
@@ -83,6 +73,8 @@ export function HabitForm({
   initialName,
   initialCategoryId,
   submitErrorTitle,
+  submitLabel,
+  showSubmitSection = true,
   onSubmitReady,
   onSavingChange,
   onSubmit,
@@ -122,6 +114,10 @@ export function HabitForm({
     setIsCategorySheetOpen(true);
   };
 
+  const closeCategorySheet = () => {
+    setIsCategorySheetOpen(false);
+  };
+
   const handleSubmit = useCallback(async () => {
     if (isSaving) {
       return;
@@ -152,8 +148,8 @@ export function HabitForm({
 
   return (
     <Host style={{ flex: 1 }}>
-      <List>
-        <Section title="Habit">
+      <FieldGroup>
+        <FieldGroup.Section title="Habit">
           <NativeTextInput
             autoFocus={autoFocusName}
             initialValue={initialName}
@@ -161,86 +157,68 @@ export function HabitForm({
             onTextChange={setName}
             placeholder="Habit name"
           />
-          <Button
-            modifiers={[buttonStyle("plain")]}
+          <ListItem
             onPress={openCategorySheet}
+            supportingText={selectedCategory.label}
           >
-            <HStack>
-              <Text
-                modifiers={[
-                  foregroundStyle({
-                    type: "hierarchical",
-                    style: "secondary",
-                  }),
-                ]}
-              >
-                Category
-              </Text>
-              <Spacer />
-              <HStack spacing={10}>
-                <Text>{selectedCategory.label}</Text>
-                <Image color="secondary" size={14} systemName="chevron.right" />
-              </HStack>
-            </HStack>
-          </Button>
-        </Section>
-      </List>
+            Category
+          </ListItem>
+        </FieldGroup.Section>
+        {showSubmitSection ? (
+          <FieldGroup.Section>
+            <Button
+              disabled={isSaving}
+              label={isSaving ? "Saving..." : submitLabel}
+              onPress={handleSubmit}
+            />
+          </FieldGroup.Section>
+        ) : null}
+      </FieldGroup>
       <BottomSheet
         isPresented={isCategorySheetOpen}
-        onIsPresentedChange={setIsCategorySheetOpen}
+        onDismiss={closeCategorySheet}
+        showDragIndicator
+        snapPoints={["half", "full"]}
       >
-        <Group
-          modifiers={[
-            presentationDetents([{ fraction: 0.5 }, "large"]),
-            presentationDragIndicator("visible"),
-          ]}
-        >
-          <List>
-            <Section title="Select Category">
+        <Host style={{ flex: 1 }}>
+          <FieldGroup>
+            <FieldGroup.Section title="Select Category">
               <NativeTextInput
                 initialValue=""
                 key={`category-search-${searchInputKey}`}
                 onTextChange={setSearchQuery}
                 placeholder="Search categories"
               />
-            </Section>
+            </FieldGroup.Section>
+          </FieldGroup>
+          <List>
             {groupedCategories.length === 0 ? (
-              <Section title="Results">
-                <Text>No categories match your search.</Text>
-              </Section>
+              <ListItem supportingText="Try a different search term.">
+                No categories
+              </ListItem>
             ) : (
-              groupedCategories.map((section) => (
-                <Section key={section.group} title={section.group}>
-                  {section.categories.map((category) => {
-                    const isSelected = category.id === selectedCategoryId;
-                    return (
-                      <Button
-                        key={category.id}
-                        modifiers={[tint(PlatformColor("label"))]}
-                        onPress={() => {
-                          setSelectedCategoryId(category.id);
-                          setIsCategorySheetOpen(false);
-                        }}
-                      >
-                        <HStack>
-                          <Text>{category.label}</Text>
-                          <Spacer />
-                          {isSelected ? (
-                            <Image
-                              modifiers={[tint(APP_ACCENT_COLOR)]}
-                              size={16}
-                              systemName="checkmark"
-                            />
-                          ) : null}
-                        </HStack>
-                      </Button>
-                    );
-                  })}
-                </Section>
-              ))
+              groupedCategories.map((section) =>
+                section.categories.map((category) => (
+                  <ListItem
+                    key={category.id}
+                    onPress={() => {
+                      setSelectedCategoryId(category.id);
+                      closeCategorySheet();
+                    }}
+                    supportingText={section.group}
+                    trailing={
+                      category.id === selectedCategoryId ? (
+                        <Text textStyle={{ color: "#34c759" }}>Selected</Text>
+                      ) : undefined
+                    }
+                  >
+                    {category.label}
+                  </ListItem>
+                ))
+              )
             )}
           </List>
-        </Group>
+        </Host>
       </BottomSheet>
     </Host>
   );
