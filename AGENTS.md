@@ -118,13 +118,13 @@ Most formatting and common issues are automatically fixed by Biome. Run `bun x u
 
 ## Release Process (App Store)
 
-This project ships to the App Store via EAS. Release config lives in `eas.json`, `app.json`, and `store.config.json`.
+This project ships to the App Store via EAS. Release config lives in `eas.json`, `app.config.ts`, and `store.config.json`.
 
 ### Release flow
 
 1. **Pre-flight**
    - Ensure the working tree is clean and tests/lint pass: `bun x ultracite check` and `bun x tsc --noEmit`.
-   - Bump `expo.version` in `app.json` and mirror the same value in `package.json#version`.
+   - Bump `expo.version` in `app.config.ts` and mirror the same value in `package.json#version`.
    - Update `apple.version` in `store.config.json` to match.
    - Update `apple.info.en-US.releaseNotes` in `store.config.json` with the changelog for this version.
 
@@ -154,7 +154,7 @@ This project ships to the App Store via EAS. Release config lives in `eas.json`,
 - `promoText` in `store.config.json` has a **170 character max**. `metadata:push` will fail validation otherwise.
 - `description` has a 4000 character max, `keywords` must be a comma-joined string under 100 characters when serialized, `subtitle` is 30 characters max.
 - `buildNumber` in `ios/` is managed by EAS. Do not edit it manually.
-- `ITSAppUsesNonExemptEncryption: false` is already declared in `app.json`, so no export compliance prompt at submit time.
+- `ITSAppUsesNonExemptEncryption: false` is already declared in `app.config.ts`, so no export compliance prompt at submit time.
 - iCloud container (`iCloud.com.praveenjuge.practice`) is set to `Production`. It must exist and be enabled on the App ID in the Apple Developer account.
 - Apple ID auth prompts are interactive. If automating, set up an App Store Connect API key and export `ASC_API_KEY_*` env vars.
 
