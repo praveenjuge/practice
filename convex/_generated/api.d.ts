@@ -9,6 +9,7 @@
  */
 
 import type * as habits from "../habits.js";
+import type * as model_stats from "../model/stats.js";
 
 import type {
   ApiFromModules,
@@ -18,6 +19,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   habits: typeof habits;
+  "model/stats": typeof model_stats;
 }>;
 
 /**

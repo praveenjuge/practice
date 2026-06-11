@@ -15,7 +15,7 @@ import { useMemo } from "react";
 import { Alert } from "react-native";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitStreakHistory } from "../habit-streak-history";
-import { getStreaks, getYearHabitHistory, useHabits } from "../habits-store";
+import { getYearHabitHistory, useHabits } from "../habits-store";
 
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
@@ -56,11 +56,10 @@ export default function HabitDetailsScreen() {
     );
   }
 
-  const streaks = getStreaks(habit.checkins, today);
+  const streaks = habit.stats;
   const isCompletedToday = habit.checkins.includes(today);
-  const totalCheckins = habit.checkins.length;
-  const lastCheckin =
-    totalCheckins > 0 ? habit.checkins.slice().sort().pop() : undefined;
+  const totalCheckins = habit.stats.totalCheckins;
+  const lastCheckin = habit.stats.lastCheckin ?? undefined;
   const showActionError = (title: string, error: unknown) => {
     Alert.alert(
       title,
@@ -120,12 +119,16 @@ export default function HabitDetailsScreen() {
             <HStack>
               <Text>Current</Text>
               <Spacer />
-              <Text modifiers={[secondaryStyle]}>{`${streaks.current}`}</Text>
+              <Text
+                modifiers={[secondaryStyle]}
+              >{`${streaks.currentStreak}`}</Text>
             </HStack>
             <HStack>
               <Text>Highest</Text>
               <Spacer />
-              <Text modifiers={[secondaryStyle]}>{`${streaks.best}`}</Text>
+              <Text
+                modifiers={[secondaryStyle]}
+              >{`${streaks.bestStreak}`}</Text>
             </HStack>
           </Section>
           <Section title="Progress">

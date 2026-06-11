@@ -1,4 +1,4 @@
-import { AuthGate } from "../web-habits-app";
+import { AuthGate } from "../web/auth-gate";
 
 export default function SignInScreen() {
   return <AuthGate />;

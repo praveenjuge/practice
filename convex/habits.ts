@@ -1,8 +1,12 @@
 import { ConvexError, v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import {
+  computeHabitStats,
+  MAX_HABIT_NAME_LENGTH,
+  normalizeName,
+} from "./model/stats";
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-const MAX_HABIT_NAME_LENGTH = 120;
 
 const getOwnerId = async (ctx: {
   auth: { getUserIdentity: () => Promise<null | { subject: string }> };
@@ -17,12 +21,26 @@ const getOwnerId = async (ctx: {
   return identity.subject;
 };
 
-const normalizeName = (name: string) => name.trim().replace(/\s+/g, " ");
+const pad2 = (value: number) => String(value).padStart(2, "0");
+const getUtcTodayString = (date = new Date()) =>
+  `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(
+    date.getUTCDate()
+  )}`;
+
 const normalizeKey = (name: string) => normalizeName(name).toLocaleLowerCase();
 const isDate = (value: string) => DATE_RE.test(value);
 
+const statsValidator = v.object({
+  bestStreak: v.number(),
+  currentStreak: v.number(),
+  lastCheckin: v.union(v.string(), v.null()),
+  totalCheckins: v.number(),
+});
+
 export const list = query({
-  args: {},
+  // `today` is optional so already-shipped native clients calling `list({})`
+  // still pass validation; the server falls back to UTC today in that case.
+  args: { today: v.optional(v.string()) },
   returns: v.array(
     v.object({
       categoryId: v.string(),
@@ -30,29 +48,52 @@ export const list = query({
       createdAt: v.string(),
       id: v.string(),
       name: v.string(),
+      stats: statsValidator,
     })
   ),
-  handler: async (ctx) => {
+  handler: async (ctx, args) => {
     const ownerId = await getOwnerId(ctx);
-    const habits = await ctx.db
-      .query("habits")
-      .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
-      .collect();
-    const rows = await Promise.all(
-      habits.map(async (habit) => {
-        const checkins = await ctx.db
-          .query("checkins")
-          .withIndex("by_habit", (q) => q.eq("habitId", habit._id))
-          .collect();
-        return {
-          id: habit._id,
-          name: habit.name,
-          categoryId: habit.categoryId,
-          createdAt: habit.createdAt,
-          checkins: checkins.map((checkin) => checkin.date).sort(),
-        };
-      })
-    );
+    const today =
+      args.today && isDate(args.today) ? args.today : getUtcTodayString();
+
+    // Fetch habits and ALL of the owner's checkins in parallel, then group by
+    // habit in a Map to avoid the per-habit N+1 query.
+    const [habits, checkins] = await Promise.all([
+      ctx.db
+        .query("habits")
+        .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+        .collect(),
+      ctx.db
+        .query("checkins")
+        .withIndex("by_owner", (q) => q.eq("ownerId", ownerId))
+        .collect(),
+    ]);
+
+    const datesByHabit = new Map<string, string[]>();
+    for (const checkin of checkins) {
+      const key = checkin.habitId as string;
+      const list_ = datesByHabit.get(key);
+      if (list_) {
+        list_.push(checkin.date);
+      } else {
+        datesByHabit.set(key, [checkin.date]);
+      }
+    }
+
+    const rows = habits.map((habit) => {
+      const dates = (datesByHabit.get(habit._id as string) ?? [])
+        .slice()
+        .sort();
+      return {
+        id: habit._id,
+        name: habit.name,
+        categoryId: habit.categoryId,
+        createdAt: habit.createdAt,
+        checkins: dates,
+        stats: computeHabitStats(dates, today),
+      };
+    });
+
     return rows.sort((left, right) =>
       left.createdAt.localeCompare(right.createdAt)
     );
@@ -139,13 +180,13 @@ export const toggleCheckin = mutation({
         message: "Invalid check-in.",
       });
     }
-    const habitCheckins = await ctx.db
+    // Point lookup on the composite index instead of scanning all checkins.
+    const existing = await ctx.db
       .query("checkins")
-      .withIndex("by_habit", (q) => q.eq("habitId", args.habitId))
-      .collect();
-    const existing = habitCheckins.find(
-      (checkin) => checkin.date === args.date
-    );
+      .withIndex("by_habit_and_date", (q) =>
+        q.eq("habitId", args.habitId).eq("date", args.date)
+      )
+      .unique();
     if (existing) {
       await ctx.db.delete(existing._id);
       return null;

@@ -5,7 +5,7 @@ import { useMemo } from "react";
 import { Alert } from "react-native";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitStreakHistory } from "../habit-streak-history";
-import { getStreaks, getYearHabitHistory, useHabits } from "../habits-store";
+import { getYearHabitHistory, useHabits } from "../habits-store";
 import {
   CHECK_ICON,
   CIRCLE_ICON,
@@ -41,11 +41,10 @@ export default function HabitDetailsScreen() {
     );
   }
 
-  const streaks = getStreaks(habit.checkins, today);
+  const streaks = habit.stats;
   const isCompletedToday = habit.checkins.includes(today);
-  const totalCheckins = habit.checkins.length;
-  const lastCheckin =
-    totalCheckins > 0 ? habit.checkins.slice().sort().pop() : undefined;
+  const totalCheckins = habit.stats.totalCheckins;
+  const lastCheckin = habit.stats.lastCheckin ?? undefined;
 
   const showActionError = (title: string, err: unknown) => {
     Alert.alert(
@@ -93,10 +92,12 @@ export default function HabitDetailsScreen() {
       />
       <Host style={{ flex: 1 }}>
         <List>
-          <ListItem supportingText={`${streaks.current}`}>
+          <ListItem supportingText={`${streaks.currentStreak}`}>
             Current streak
           </ListItem>
-          <ListItem supportingText={`${streaks.best}`}>Highest streak</ListItem>
+          <ListItem supportingText={`${streaks.bestStreak}`}>
+            Highest streak
+          </ListItem>
           <ListItem supportingText={`${totalCheckins}`}>
             Total check-ins
           </ListItem>

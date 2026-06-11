@@ -1,8 +1,16 @@
+import type { OptimisticLocalStore } from "convex/browser";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import type { FunctionReturnType } from "convex/server";
 import type React from "react";
 import { createContext, useCallback, useContext, useMemo } from "react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
+import {
+  computeHabitStats,
+  type HabitStats,
+  MAX_HABIT_NAME_LENGTH,
+  normalizeName,
+} from "../convex/model/stats";
 import {
   type HabitCategoryId,
   isValidHabitCategoryId,
@@ -15,11 +23,7 @@ export interface Habit {
   createdAt: string;
   id: string;
   name: string;
-}
-
-export interface HabitStreaks {
-  best: number;
-  current: number;
+  stats: HabitStats;
 }
 
 interface HabitsContextValue {
@@ -40,20 +44,15 @@ interface HabitsContextValue {
 
 const HabitsContext = createContext<HabitsContextValue | null>(null);
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-export const MAX_HABIT_NAME_LENGTH = 120;
+
+type ListRow = FunctionReturnType<typeof api.habits.list>[number];
 
 const pad2 = (value: number) => String(value).padStart(2, "0");
 
 export const formatDate = (date: Date) =>
   `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
-const formatUtcDate = (date: Date) =>
-  `${date.getUTCFullYear()}-${pad2(date.getUTCMonth() + 1)}-${pad2(
-    date.getUTCDate()
-  )}`;
-
 export const getTodayString = (date = new Date()) => formatDate(date);
-const getUtcTodayString = (date = new Date()) => formatUtcDate(date);
 
 const parseDateString = (value: string) => {
   const [year, month, day] = value.split("-").map(Number);
@@ -82,7 +81,7 @@ const normalizeHabitName = (name: unknown) => {
   if (typeof name !== "string") {
     throw new Error("Habit name is required.");
   }
-  const trimmed = name.trim().replace(/\s+/g, " ");
+  const trimmed = normalizeName(name);
   if (!trimmed) {
     throw new Error("Habit name is required.");
   }
@@ -102,16 +101,6 @@ const normalizeHabitCategoryId = (categoryId?: unknown) => {
     throw new Error("Invalid habit category.");
   }
   return categoryId;
-};
-
-const streakFrom = (start: string, set: Set<string>) => {
-  let count = 0;
-  let cursor = start;
-  while (set.has(cursor)) {
-    count += 1;
-    cursor = formatDate(addDays(parseDateString(cursor), -1));
-  }
-  return count;
 };
 
 export const hasCheckInToday = (checkins: string[], today = getTodayString()) =>
@@ -210,64 +199,136 @@ export const getYearHabitHistory = (
   return weeks;
 };
 
-export const getStreaks = (
-  checkins: string[],
-  today = getTodayString()
-): HabitStreaks => {
-  const sorted = normalizeDateArray(checkins);
-  if (sorted.length === 0 || !isValidDateString(today)) {
-    return { current: 0, best: 0 };
+const toOnlineHabitId = (id: string) => id as Id<"habits">;
+
+const createTempId = (): string => {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
   }
-  const set = new Set(sorted);
-  const latest = sorted.at(-1);
-  if (!latest) {
-    return { current: 0, best: 0 };
-  }
-  const gap = diffInDays(parseDateString(today), parseDateString(latest));
-  let current = 0;
-  if (gap === 0) {
-    current = streakFrom(today, set);
-  } else if (gap === 1) {
-    current = streakFrom(latest, set);
-  }
-  let best = 0;
-  for (const date of sorted) {
-    const prev = formatDate(addDays(parseDateString(date), -1));
-    if (!set.has(prev)) {
-      best = Math.max(best, streakFrom(date, set));
-    }
-  }
-  return { current, best };
+  return `temp-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 };
 
-const useOnlineHabits = (enabled: boolean) =>
-  useQuery(api.habits.list, enabled ? {} : "skip");
+// Patch every cached args-variant of `habits.list` (search/detail routes may
+// hold distinct `today` values). We iterate all queries rather than re-deriving
+// args so a `today` mismatch never turns into a silent no-op.
+const patchListQueries = (
+  localStore: OptimisticLocalStore,
+  patch: (rows: ListRow[], today: string) => ListRow[]
+) => {
+  for (const entry of localStore.getAllQueries(api.habits.list)) {
+    if (entry.value === undefined) {
+      continue;
+    }
+    const today = entry.args.today ?? getTodayString();
+    localStore.setQuery(api.habits.list, entry.args, patch(entry.value, today));
+  }
+};
 
-const normalizeOnlineHabits = (
-  habits: NonNullable<ReturnType<typeof useOnlineHabits>>
-): Habit[] =>
+const optimisticToggleCheckin = (
+  localStore: OptimisticLocalStore,
+  args: { date: string; habitId: Id<"habits"> }
+) => {
+  patchListQueries(localStore, (rows, today) =>
+    rows.map((row) => {
+      if (row.id !== args.habitId) {
+        return row;
+      }
+      const has = row.checkins.includes(args.date);
+      const checkins = has
+        ? row.checkins.filter((date) => date !== args.date)
+        : [...row.checkins, args.date].sort();
+      return { ...row, checkins, stats: computeHabitStats(checkins, today) };
+    })
+  );
+};
+
+const optimisticCreate = (
+  localStore: OptimisticLocalStore,
+  args: { categoryId: string; createdAt: string; name: string }
+) => {
+  patchListQueries(localStore, (rows, today) => {
+    const tempRow: ListRow = {
+      id: createTempId() as Id<"habits">,
+      name: normalizeName(args.name),
+      categoryId: args.categoryId,
+      createdAt: args.createdAt,
+      checkins: [],
+      stats: computeHabitStats([], today),
+    };
+    return [...rows, tempRow].sort((left, right) =>
+      left.createdAt.localeCompare(right.createdAt)
+    );
+  });
+};
+
+const optimisticUpdate = (
+  localStore: OptimisticLocalStore,
+  args: { categoryId: string; habitId: Id<"habits">; name: string }
+) => {
+  patchListQueries(localStore, (rows) =>
+    rows.map((row) =>
+      row.id === args.habitId
+        ? {
+            ...row,
+            name: normalizeName(args.name),
+            categoryId: args.categoryId,
+          }
+        : row
+    )
+  );
+};
+
+const optimisticRemove = (
+  localStore: OptimisticLocalStore,
+  args: { habitId: Id<"habits"> }
+) => {
+  patchListQueries(localStore, (rows) =>
+    rows.filter((row) => row.id !== args.habitId)
+  );
+};
+
+const normalizeOnlineHabits = (habits: ListRow[]): Habit[] =>
   habits.map((habit) => ({
     ...habit,
     categoryId: resolveHabitCategoryId(habit.categoryId),
   }));
 
-const toOnlineHabitId = (id: string) => id as Id<"habits">;
-
 export function HabitsProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useConvexAuth();
-  const onlineHabits = useOnlineHabits(isAuthenticated);
-  const createOnlineHabit = useMutation(api.habits.create);
-  const updateOnlineHabit = useMutation(api.habits.update);
-  const deleteOnlineHabit = useMutation(api.habits.remove);
-  const toggleOnlineCheckin = useMutation(api.habits.toggleCheckin);
-  const today = getUtcTodayString();
+  const today = getTodayString();
+  const onlineHabits = useQuery(
+    api.habits.list,
+    isAuthenticated ? { today } : "skip"
+  );
+
+  const createBase = useMutation(api.habits.create);
+  const updateBase = useMutation(api.habits.update);
+  const removeBase = useMutation(api.habits.remove);
+  const toggleBase = useMutation(api.habits.toggleCheckin);
+
+  const createOnlineHabit = useMemo(
+    () => createBase.withOptimisticUpdate(optimisticCreate),
+    [createBase]
+  );
+  const updateOnlineHabit = useMemo(
+    () => updateBase.withOptimisticUpdate(optimisticUpdate),
+    [updateBase]
+  );
+  const deleteOnlineHabit = useMemo(
+    () => removeBase.withOptimisticUpdate(optimisticRemove),
+    [removeBase]
+  );
+  const toggleOnlineCheckin = useMemo(
+    () => toggleBase.withOptimisticUpdate(optimisticToggleCheckin),
+    [toggleBase]
+  );
 
   const addHabit = useCallback(
     async (input: { name: string; categoryId?: HabitCategoryId }) => {
       await createOnlineHabit({
         name: normalizeHabitName(input.name),
         categoryId: normalizeHabitCategoryId(input.categoryId),
-        createdAt: getUtcTodayString(),
+        createdAt: getTodayString(),
       });
     },
     [createOnlineHabit]
@@ -277,7 +338,7 @@ export function HabitsProvider({ children }: { children: React.ReactNode }) {
     async (id: string) => {
       await toggleOnlineCheckin({
         habitId: toOnlineHabitId(id),
-        date: getUtcTodayString(),
+        date: getTodayString(),
       });
     },
     [toggleOnlineCheckin]

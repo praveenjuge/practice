@@ -1,15 +1,16 @@
 import { ClerkProvider, useAuth } from "@clerk/expo";
+import { Column, Host, Text } from "@expo/ui";
 import { ConvexReactClient } from "convex/react";
 import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { Text, View } from "react-native";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitsProvider } from "../habits-store";
 import {
   ThemePreferenceProvider,
   useThemePreference,
 } from "../theme-preference";
+import { FONT_SUBHEAD, usePalette } from "../web/palette";
 
 const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
 const convexUrl =
@@ -38,23 +39,28 @@ function ThemedLayout() {
   const { resolvedScheme } = useThemePreference();
   const { isLoaded, isSignedIn } = useAuth();
   const isDark = resolvedScheme === "dark";
+  const palette = usePalette();
 
   // Gate routing until Clerk restores the session so we never mount the
   // (auth) group during session restore on the web.
   if (!isLoaded) {
     return (
-      <View
+      <Host
         style={{
           alignItems: "center",
-          backgroundColor: isDark ? "#000000" : "#f5f5f7",
+          backgroundColor: palette.page,
           flex: 1,
           justifyContent: "center",
         }}
       >
-        <Text style={{ color: isDark ? "#98989f" : "#6e6e73" }}>
-          Loading...
-        </Text>
-      </View>
+        <Column alignment="center">
+          <Text
+            textStyle={{ color: palette.secondary, fontSize: FONT_SUBHEAD }}
+          >
+            Loading…
+          </Text>
+        </Column>
+      </Host>
     );
   }
 

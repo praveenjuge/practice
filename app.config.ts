@@ -22,7 +22,12 @@ const config: ExpoConfig = {
     },
   },
   plugins: [
-    "expo-router",
+    [
+      "expo-router",
+      {
+        asyncRoutes: { default: "development", web: true },
+      },
+    ],
     [
       "@clerk/expo",
       {
