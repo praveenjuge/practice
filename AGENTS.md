@@ -146,6 +146,7 @@ Releases are built and uploaded locally with Xcode. Expo's hosted services (EAS 
 - `ITSAppUsesNonExemptEncryption: false` is declared in `app.config.ts`, so there is no export compliance prompt.
 - App Privacy must match reality: the app collects email, name, user ID and habit data, linked to the user, not used for tracking.
 - Reviewers sign in with their own Apple or Google account; account deletion lives in the home screen's account menu.
+- Support URL should be https://praveenjuge.com/practice/support/ (2.0.0 still points at the privacy page; change it on the next version).
 
 ### Versioning convention
 
