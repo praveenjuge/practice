@@ -1,0 +1,5 @@
+User-agent: *
+Disallow: /api/
+Disallow: /callback
+
+Sitemap: https://practice.praveenjuge.com/sitemap.xml

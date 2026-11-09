@@ -15,6 +15,8 @@ const config: ExpoConfig = {
     ],
     icon: "./assets/icon.png",
     package: "com.praveenjuge.practice",
+    // Bump for every Google Play upload.
+    versionCode: 1,
   },
   experiments: {
     reactCompiler: true,
@@ -74,6 +76,9 @@ const config: ExpoConfig = {
   userInterfaceStyle: "automatic",
   version: "2.0.0",
   web: {
+    // Expo generates favicon.ico from this and links it in index.html.
+    // The rest of the page head lives in public/index.html.
+    favicon: "./assets/icon.png",
     output: "single",
   },
 };
