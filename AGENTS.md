@@ -148,6 +148,14 @@ Releases are built and uploaded locally with Xcode. Expo's hosted services (EAS 
 - Reviewers sign in with their own Apple or Google account; account deletion lives in the home screen's account menu.
 - Support URL should be https://praveenjuge.com/practice/support/ (2.0.0 still points at the privacy page; change it on the next version).
 
+## Release Process (Google Play)
+
+1. Bump `version` like for iOS, and `android.versionCode` in `app.config.ts` (every upload needs a higher one).
+2. `bun run release:android` (runs `scripts/release-android.sh`): clean prebuild, then `./gradlew bundleRelease` signed with the upload key. Output: `android/app/build/outputs/bundle/release/app-release.aab`.
+   - The upload key is `~/Downloads/Sensitive - keep local/practice-upload.jks`; its settings are `PRACTICE_UPLOAD_*` in `~/.gradle/gradle.properties`. Never commit either. Play App Signing holds the real signing key.
+3. Upload the AAB in Play Console (Practice: Habit Tracker) to the track you need, fill in release notes, and roll out.
+- The account is a personal developer account: a new app needs a closed test with at least 12 testers opted in for 14 days before production access.
+
 ### Versioning convention
 
 - Patch (`1.1.0` → `1.1.1`): bug fixes only, no user-visible behavior changes.

@@ -19,6 +19,7 @@
     "fix": "ultracite fix",
     "ios": "expo run:ios",
     "prepare": "husky",
+    "release:android": "scripts/release-android.sh",
     "release:ios": "scripts/release-ios.sh",
     "serve:web": "expo serve",
     "start": "expo start",
