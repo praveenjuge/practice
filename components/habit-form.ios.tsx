@@ -10,6 +10,7 @@ import {
   Spacer,
   Text,
   TextField,
+  type TextFieldRef,
   useNativeState,
 } from "@expo/ui/swift-ui";
 import {
@@ -19,7 +20,14 @@ import {
   presentationDragIndicator,
   tint,
 } from "@expo/ui/swift-ui/modifiers";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type Ref,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Alert, PlatformColor } from "react-native";
 import {
   getHabitCategory,
@@ -56,12 +64,14 @@ interface HabitFormProps {
 interface NativeTextInputProps {
   autoFocus?: boolean;
   initialValue: string;
+  inputRef?: Ref<TextFieldRef>;
   onTextChange: (value: string) => void;
   placeholder: string;
 }
 
 function NativeTextInput({
   autoFocus,
+  inputRef,
   initialValue,
   onTextChange,
   placeholder,
@@ -73,6 +83,7 @@ function NativeTextInput({
       autoFocus={autoFocus}
       onTextChange={onTextChange}
       placeholder={placeholder}
+      ref={inputRef}
       text={text}
     />
   );
@@ -159,11 +170,19 @@ export function HabitForm({
     setIsCategorySheetOpen(false);
   }, []);
 
+  const nameInputRef = useRef<TextFieldRef>(null);
+
   const handleSubmit = useCallback(async () => {
     if (isSaving) {
       return;
     }
     setIsSaving(true);
+    // Release keyboard focus first: SwiftUI lists assert if they update rows
+    // while a text field inside them is still the first responder.
+    const nameInput: TextFieldRef | null = nameInputRef.current;
+    if (nameInput) {
+      await nameInput.blur();
+    }
     try {
       await onSubmit({ categoryId: selectedCategoryId, name });
     } catch (error) {
@@ -194,6 +213,7 @@ export function HabitForm({
           <NativeTextInput
             autoFocus={autoFocusName}
             initialValue={initialName}
+            inputRef={nameInputRef}
             key={`habit-name-${initialName}`}
             onTextChange={setName}
             placeholder="Habit name"

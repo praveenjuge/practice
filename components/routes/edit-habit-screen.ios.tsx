@@ -78,6 +78,7 @@ export default function EditHabitScreen() {
       />
       <Stack.Toolbar placement="right">
         <Stack.Toolbar.Button
+          accessibilityLabel="Save"
           disabled={isHeaderDisabled}
           icon="checkmark"
           onPress={handleHeaderSubmit}

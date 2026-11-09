@@ -248,7 +248,8 @@ describe("habits", () => {
       token,
     });
     const detail = await response.json<HabitDetail>();
-    expect(detail.stats).toMatchObject({
+    expect(detail.stats).toEqual({
+      bestStreak: 4,
       currentStreak: 2,
       lastCheckin: "2026-11-08",
       totalCheckins: 6,

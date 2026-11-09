@@ -87,10 +87,11 @@ export const computeHabitStats = (
     currentStreak = streakFrom(lastCheckin, set);
   }
 
+  // streakFrom counts backwards, so measure each run from its last day.
   let bestStreak = 0;
   for (const date of sortedDates) {
-    const previous = formatDate(addDays(parseDateString(date), -1));
-    if (!set.has(previous)) {
+    const next = formatDate(addDays(parseDateString(date), 1));
+    if (!set.has(next)) {
       bestStreak = Math.max(bestStreak, streakFrom(date, set));
     }
   }

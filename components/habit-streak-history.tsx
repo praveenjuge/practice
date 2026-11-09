@@ -1,56 +1,17 @@
-import { Column, Row, ScrollView, Spacer, Text } from "@expo/ui";
-import { APP_ACCENT_COLOR } from "./app-colors";
+import { useWindowDimensions } from "react-native";
+import { HabitHistoryGrid, HISTORY_COLUMN_STRIDE } from "./habit-history-grid";
 import type { HabitHistoryWeek } from "./habits-store";
 
-const BOX_WIDTH = 12;
-const BOX_HEIGHT = 12;
-const BOX_CORNER_RADIUS = 2;
-const BOX_SPACING = 3;
-const LABEL_ROW_HEIGHT = 14;
-const EMPTY_CELL_OPACITY = 0.5;
-const MISSED_COLOR = "#d8dde4";
+// Horizontal space the list row takes around the grid (Material list insets).
+const ROW_INSETS = 48;
 
-interface HabitStreakHistoryProps {
-  weeks: HabitHistoryWeek[];
-}
-
-export function HabitStreakHistory({ weeks }: HabitStreakHistoryProps) {
-  return (
-    <ScrollView direction="horizontal" showsIndicators={false}>
-      <Column alignment="start" spacing={BOX_SPACING}>
-        <Row spacing={BOX_SPACING}>
-          {weeks.map((week) => (
-            <Text
-              key={`label-${week.weekStart}`}
-              numberOfLines={1}
-              style={{ height: LABEL_ROW_HEIGHT, width: BOX_WIDTH }}
-              textStyle={{ color: "#6b7280", fontSize: 10 }}
-            >
-              {week.monthLabel ?? ""}
-            </Text>
-          ))}
-        </Row>
-        <Row alignment="start" spacing={BOX_SPACING}>
-          {weeks.map((week) => (
-            <Column key={`col-${week.weekStart}`} spacing={BOX_SPACING}>
-              {week.days.map((day) => (
-                <Spacer
-                  key={day.date}
-                  style={{
-                    backgroundColor: day.completed
-                      ? APP_ACCENT_COLOR
-                      : MISSED_COLOR,
-                    borderRadius: BOX_CORNER_RADIUS,
-                    height: BOX_HEIGHT,
-                    opacity: day.inRange ? 1 : EMPTY_CELL_OPACITY,
-                    width: BOX_WIDTH,
-                  }}
-                />
-              ))}
-            </Column>
-          ))}
-        </Row>
-      </Column>
-    </ScrollView>
+// Android: Compose scroll views always open at the start, which would hide
+// today. Show the most recent weeks that fit the screen instead.
+export function HabitStreakHistory({ weeks }: { weeks: HabitHistoryWeek[] }) {
+  const { width } = useWindowDimensions();
+  const visibleWeeks = Math.max(
+    1,
+    Math.floor((width - ROW_INSETS) / HISTORY_COLUMN_STRIDE)
   );
+  return <HabitHistoryGrid weeks={weeks.slice(-visibleWeeks)} />;
 }

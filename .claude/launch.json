@@ -1,0 +1,23 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "auth",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev:auth"],
+      "port": 4100
+    },
+    {
+      "name": "api",
+      "runtimeExecutable": "bun",
+      "runtimeArgs": ["run", "dev:api"],
+      "port": 8787
+    },
+    {
+      "name": "metro",
+      "runtimeExecutable": "bunx",
+      "runtimeArgs": ["expo", "start", "--dev-client", "--port", "8081"],
+      "port": 8081
+    }
+  ]
+}

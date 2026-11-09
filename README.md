@@ -70,6 +70,13 @@ The Android emulator reaches the local services through `adb reverse`:
 adb reverse tcp:8787 tcp:8787 && adb reverse tcp:4100 tcp:4100
 ```
 
+On a fresh Android emulator, turn off Chrome's first-run screens so the
+sign-in tab opens straight away (test devices only):
+
+```sh
+adb shell 'echo "chrome --disable-fre --no-default-browser-check --no-first-run" > /data/local/tmp/chrome-command-line' && adb shell am set-debug-app --persistent com.android.chrome
+```
+
 The web app is served by the Worker at http://localhost:8787. Rebuild it after
 web changes with `bun run dev:web`.
 
@@ -77,6 +84,18 @@ Run the API tests (Workers runtime, local D1, no network):
 
 ```sh
 bun run test:api
+```
+
+End-to-end checks use [Maestro](https://maestro.dev) flows in `.maestro/`,
+run against a Release build that talks to the local API and emulator. Build
+once per app change, then run the flows on the booted simulator or emulator:
+
+```sh
+bun run e2e:build:ios
+```
+
+```sh
+bun run e2e
 ```
 
 To test against the real WorkOS Staging environment instead of the emulator,

@@ -1,0 +1,106 @@
+# End-to-end check of the main flow against the local stack. Needs:
+#   bun run dev:auth            (WorkOS emulator)
+#   bun run dev:api             (Worker + local D1)
+#   bun run e2e:build:ios       (or e2e:build:android) once per app change
+# Run: bun run e2e
+appId: com.praveenjuge.practice
+name: Sign in, track a habit, sign out
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Track your habits and build streaks.|Practice"
+    timeout: 60000
+# The iOS Keychain keeps the session across reinstalls; start signed out.
+- runFlow:
+    when:
+      visible: "Account"
+    commands:
+      - tapOn: "Account"
+      - tapOn: "Sign Out"
+      - tapOn: "Sign Out"
+- extendedWaitUntil:
+    visible: "Track your habits and build streaks."
+    timeout: 10000
+
+# Sign in through the WorkOS emulator's login page.
+- waitForAnimationToEnd
+- tapOn: "Continue"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      # iOS asks before opening the sign-in sheet.
+      - extendedWaitUntil:
+          visible: ".*Wants to Use.*"
+          timeout: 20000
+      - tapOn: "Continue"
+- extendedWaitUntil:
+    visible: "Pick an account.*"
+    timeout: 20000
+- tapOn: "Pick an account.*"
+- tapOn: "alex@example.com"
+- extendedWaitUntil:
+    visible: "Practice"
+    timeout: 20000
+
+# Remove a test habit left behind by an interrupted run.
+- runFlow:
+    when:
+      visible: "Maestro check"
+    commands:
+      - tapOn: "Maestro check"
+      - scrollUntilVisible:
+          element: "Delete habit"
+      - tapOn: "Delete habit"
+      - tapOn: "Delete"
+      - extendedWaitUntil:
+          notVisible: "Maestro check"
+          timeout: 10000
+
+# Add a habit.
+- tapOn: "New habit"
+- tapOn: "Habit name"
+- inputText: "Maestro check"
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn: "Save"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - hideKeyboard
+      - tapOn: "Add Habit"
+- extendedWaitUntil:
+    visible: "Maestro check"
+    timeout: 10000
+# Open it and check it off for today; the server-computed stats follow.
+- tapOn: "Maestro check"
+- extendedWaitUntil:
+    visible: "Total check-ins"
+    timeout: 10000
+- scrollUntilVisible:
+    element: "Mark (as )?Complete"
+- tapOn: "Mark (as )?Complete"
+- extendedWaitUntil:
+    visible: "Mark (as )?Incomplete"
+    timeout: 10000
+
+# Then delete it.
+- scrollUntilVisible:
+    element: "Delete habit"
+- tapOn: "Delete habit"
+- tapOn: "Delete"
+- extendedWaitUntil:
+    notVisible: "Maestro check"
+    timeout: 10000
+
+# Sign out.
+- tapOn: "Account"
+- tapOn: "Sign Out"
+- tapOn: "Sign Out"
+- extendedWaitUntil:
+    visible: "Track your habits and build streaks."
+    timeout: 10000
