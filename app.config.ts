@@ -20,6 +20,7 @@ const config: ExpoConfig = {
     router: {},
   },
   ios: {
+    appleTeamId: "LW385M78LW",
     // Bump for every App Store upload; it must be higher than any build
     // already uploaded (see TestFlight in App Store Connect).
     buildNumber: "10",
