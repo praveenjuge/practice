@@ -75,11 +75,15 @@ export function HoverPressable({
 
 type AppButtonVariant = "filled" | "outlined";
 
+const PROMINENT_FONT_SIZE = 17;
+
 interface AppButtonProps {
   destructive?: boolean;
   disabled?: boolean;
   label: string;
   onPress: () => void;
+  /** Taller, larger-text button for a screen's main action. */
+  prominent?: boolean;
   variant?: AppButtonVariant;
 }
 
@@ -90,6 +94,7 @@ export function AppButton({
   disabled = false,
   label,
   onPress,
+  prominent = false,
   variant = "filled",
 }: AppButtonProps) {
   const palette = usePalette();
@@ -110,6 +115,7 @@ export function AppButton({
       onPress={onPress}
       style={[
         styles.button,
+        prominent ? styles.buttonProminent : null,
         variantStyle,
         disabled ? styles.buttonDisabled : null,
       ]}
@@ -117,7 +123,7 @@ export function AppButton({
       <Text
         textStyle={{
           color: filled ? "#ffffff" : accent,
-          fontSize: FONT_SUBHEAD,
+          fontSize: prominent ? PROMINENT_FONT_SIZE : FONT_SUBHEAD,
           fontWeight: "600",
         }}
       >
@@ -137,4 +143,5 @@ const styles = StyleSheet.create({
     userSelect: "none",
   },
   buttonDisabled: { opacity: 0.45 },
+  buttonProminent: { borderRadius: 12, minHeight: 50 },
 });

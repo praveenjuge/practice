@@ -2,9 +2,12 @@ import type { ExpoConfig } from "expo/config";
 
 const config: ExpoConfig = {
   android: {
+    // Badge-only layers sized for Android's safe zone, so launcher masks
+    // (circle, squircle) never clip it.
     adaptiveIcon: {
-      backgroundColor: "#34c759",
-      foregroundImage: "./assets/icon.png",
+      backgroundColor: "#28CD41",
+      foregroundImage: "./assets/adaptive-icon.png",
+      monochromeImage: "./assets/adaptive-icon-monochrome.png",
     },
     blockedPermissions: [
       "android.permission.READ_EXTERNAL_STORAGE",
@@ -23,7 +26,7 @@ const config: ExpoConfig = {
     appleTeamId: "LW385M78LW",
     // Bump for every App Store upload; it must be higher than any build
     // already uploaded (see TestFlight in App Store Connect).
-    buildNumber: "10",
+    buildNumber: "11",
     bundleIdentifier: "com.praveenjuge.practice",
     icon: "./assets/icon.png",
     infoPlist: {
@@ -43,12 +46,13 @@ const config: ExpoConfig = {
     [
       "expo-splash-screen",
       {
-        backgroundColor: "#ffffff",
+        // The icon's own green, so the white badge sits on one solid color.
+        backgroundColor: "#28CD41",
         dark: {
-          backgroundColor: "#000000",
+          backgroundColor: "#28CD41",
         },
         image: "./assets/icon.png",
-        imageWidth: 200,
+        imageWidth: 180,
         resizeMode: "contain",
       },
     ],
