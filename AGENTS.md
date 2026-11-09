@@ -118,45 +118,34 @@ Most formatting and common issues are automatically fixed by Biome. Run `bun x u
 
 ## Release Process (App Store)
 
-This project ships to the App Store via EAS. Release config lives in `eas.json`, `app.config.ts`, and `store.config.json`.
+Releases are built and uploaded locally with Xcode. Expo's hosted services (EAS Build, Submit, Metadata) are not used; don't add them back.
 
 ### Release flow
 
 1. **Pre-flight**
-   - Ensure the working tree is clean and tests/lint pass: `bun x ultracite check` and `bun x tsc --noEmit`.
-   - Bump `expo.version` in `app.config.ts` and mirror the same value in `package.json#version`.
-   - Update `apple.version` in `store.config.json` to match.
-   - Update `apple.info.en-US.releaseNotes` in `store.config.json` with the changelog for this version.
+   - Working tree clean, and these pass: `bun x ultracite check`, `bun x tsc --noEmit`, `bun run test:api`, and the local end-to-end check (see "Local verification for AI agents").
+   - Bump `version` in `app.config.ts` and mirror it in `package.json#version`.
+   - Bump `ios.buildNumber` in `app.config.ts`. It must be higher than every build already uploaded (App Store Connect > TestFlight).
 
 2. **Commit and push**
-   - Commit all release changes (code, version bumps, metadata) in a single commit.
-   - Pushing directly to `main` is the house style for this repo.
+   - Commit the release changes in one commit and push to `main` (house style). This also deploys the backend.
 
-3. **Metadata push**
-   - `bun run metadata:push` (alias for `bun x eas metadata:push`).
-   - Prompts interactively for Apple ID login on first run per session. Cached afterwards.
+3. **Build and upload**
+   - `bun run release:ios` (runs `scripts/release-ios.sh`): clean prebuild, `xcodebuild archive`, then export with `release/ExportOptions.plist`, which uploads straight to App Store Connect.
+   - Uses the Apple account signed in to Xcode (team `LW385M78LW`) with automatic signing. Takes about 10 minutes.
+   - `EXPO_NO_DOTENV=1` is set so `.env.local` (the localhost API) is never baked in; store builds use the production API.
 
-4. **Local build**
-   - `bun run build:local` (alias for `eas build --platform ios --local`).
-   - Requires working Xcode + signing credentials. Takes 10 to 20 minutes.
-   - Must be online because EAS assigns the build number remotely (`appVersionSource: remote` + `autoIncrement: true`).
-   - **The build will prompt: `Do you want to log in to your Apple account? (Y/n)`.** This is optional — EAS already has remote iOS credentials cached. Answer `n` to skip the Apple login and let the build proceed non-interactively. Pipe the answer in: `printf 'n\n' | bun run build:local`.
-
-5. **Submit**
-   - `bun run build:submit` (alias for `eas submit --platform ios`).
-   - Uploads the local `.ipa` to App Store Connect.
-
-6. **Release**
-   - `automaticRelease: true` is set in `store.config.json`, so the version auto-releases after Apple approves review. No manual release step needed.
+4. **App Store Connect** (by hand, in the browser)
+   - Create the new iOS version, attach the uploaded build once it finishes processing, and fill in "What's New".
+   - Update the description, keywords or App Privacy answers if the app's behavior changed.
+   - Submit for review. "Automatically release" is on, so it goes live after approval.
 
 ### Gotchas
 
-- `promoText` in `store.config.json` has a **170 character max**. `metadata:push` will fail validation otherwise.
-- `description` has a 4000 character max, `keywords` must be a comma-joined string under 100 characters when serialized, `subtitle` is 30 characters max.
-- `buildNumber` in `ios/` is managed by EAS. Do not edit it manually.
-- `ITSAppUsesNonExemptEncryption: false` is already declared in `app.config.ts`, so no export compliance prompt at submit time.
-- iCloud container (`iCloud.com.praveenjuge.practice`) is set to `Production`. It must exist and be enabled on the App ID in the Apple Developer account.
-- Apple ID auth prompts are interactive. If automating, set up an App Store Connect API key and export `ASC_API_KEY_*` env vars.
+- Promotional text has a 170 character max, description 4000, keywords 100 (comma-separated), subtitle 30.
+- `ITSAppUsesNonExemptEncryption: false` is declared in `app.config.ts`, so there is no export compliance prompt.
+- App Privacy must match reality: the app collects email, name, user ID and habit data, linked to the user, not used for tracking.
+- Reviewers sign in with their own Apple or Google account; account deletion lives in the home screen's account menu.
 
 ### Versioning convention
 
@@ -174,3 +163,27 @@ The backend is a Cloudflare Worker (`worker/`, Hono) with D1 (`migrations/`) and
 - Local runs need no secrets: `bun run dev:auth` (WorkOS emulator, seeded users in `workos-emulate.config.yaml`) + `bun run dev:api`. See README "Local development".
 - WorkOS project "Practice": Staging for optional real-auth testing, Production for the deployed Worker.
 - Pushes to `main` deploy through Cloudflare Workers Builds.
+
+## Local verification for AI agents
+
+Verify changes against the real app running locally. Everything runs on this machine with no secrets: the API in `wrangler dev` with a local D1, and sign-in through the WorkOS emulator. Server configs are in `.claude/launch.json` (`auth`, `api`, `metro`), so `preview_start` can start them.
+
+1. **Start the services** (keep them running):
+   - `bun run dev:auth` - WorkOS emulator on :4100. Seeded users are in `workos-emulate.config.yaml`; sign in as `alex@example.com` (pick it under "Pick an account" on the emulator's login page).
+   - `bun run dev:api` - applies local D1 migrations, then serves the API and the web build on :8787.
+   - `bun run start` - Metro on :8081, for development builds.
+2. **API**: `bun run test:api` (Workers runtime, local D1, no network). Inspect data with `bunx wrangler d1 execute practice --local --json --command "SELECT * FROM habits"`.
+3. **Web**: open http://localhost:8787 (drive it with Aside). Rebuild after web changes with `bun run dev:web`.
+4. **iOS**: boot a simulator, `bun run ios` for a dev build. The first sign-in shows the system "Wants to Use localhost to Sign In" prompt; tap Continue.
+5. **Android**: boot an emulator, then
+   - `adb reverse tcp:8787 tcp:8787 && adb reverse tcp:4100 tcp:4100 && adb reverse tcp:8081 tcp:8081`
+   - skip Chrome's first-run screens (test devices only): `adb shell 'echo "chrome --disable-fre --no-default-browser-check --no-first-run" > /data/local/tmp/chrome-command-line' && adb shell am set-debug-app --persistent com.android.chrome`
+   - `bun run android`
+   - Never accept Chrome or Google terms on a device to get past a screen.
+6. **End-to-end (Maestro)**: build a Release app against the local stack once per app change (`bun run e2e:build:ios` or `bun run e2e:build:android`), then `bun run e2e`. The flow in `.maestro/habit-flow.yaml` signs in, adds, checks in, deletes and signs out, and cleans up after interrupted runs. Run Maestro with `JAVA_HOME` set to a JDK (e.g. `/opt/homebrew/opt/openjdk/libexec/openjdk.jdk/Contents/Home`).
+7. **Report** what you ran and what you saw (screens, API log lines, test output). A change isn't verified until it has run on the platforms it touches.
+
+Notes:
+- The iOS Keychain keeps the session across reinstalls; the Maestro flow signs out first if needed.
+- Release builds read `.env.local` (`EXPO_PUBLIC_API_URL=http://localhost:8787`); only `bun run release:ios` builds for production.
+- To test real Apple/Google sign-in instead of the emulator, follow the comments in `.dev.vars.example` (WorkOS Staging).

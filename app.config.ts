@@ -17,12 +17,12 @@ const config: ExpoConfig = {
     reactCompiler: true,
   },
   extra: {
-    eas: {
-      projectId: "9dcaabde-e8e9-4eaf-b603-faa06acc6707",
-    },
     router: {},
   },
   ios: {
+    // Bump for every App Store upload; it must be higher than any build
+    // already uploaded (see TestFlight in App Store Connect).
+    buildNumber: "10",
     bundleIdentifier: "com.praveenjuge.practice",
     icon: "./assets/icon.png",
     infoPlist: {
@@ -67,7 +67,7 @@ const config: ExpoConfig = {
   scheme: "practice",
   slug: "practice",
   userInterfaceStyle: "automatic",
-  version: "1.2.0",
+  version: "2.0.0",
   web: {
     output: "single",
   },

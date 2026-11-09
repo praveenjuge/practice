@@ -46,3 +46,4 @@ build-*.ipa
 .dev.vars*
 !.dev.vars.example
 .wrangler/
+/build
