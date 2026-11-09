@@ -9,7 +9,7 @@ name: Sign in, track a habit, sign out
 - launchApp:
     clearState: true
 - extendedWaitUntil:
-    visible: "Track your habits and build streaks.|Practice"
+    visible: "Build habits that stick.*|Practice"
     timeout: 60000
 # The iOS Keychain keeps the session across reinstalls; start signed out.
 - runFlow:
@@ -20,7 +20,7 @@ name: Sign in, track a habit, sign out
       - tapOn: "Sign Out"
       - tapOn: "Sign Out"
 - extendedWaitUntil:
-    visible: "Track your habits and build streaks."
+    visible: "Build habits that stick.*"
     timeout: 10000
 
 # Sign in through the WorkOS emulator's login page.
@@ -35,11 +35,28 @@ name: Sign in, track a habit, sign out
           visible: ".*Wants to Use.*"
           timeout: 20000
       - tapOn: "Continue"
-- extendedWaitUntil:
-    visible: "Pick an account.*"
-    timeout: 20000
-- tapOn: "Pick an account.*"
-- tapOn: "alex@example.com"
+# iOS can read the login page; on Android the Custom Tab's web content is not
+# in the accessibility tree, so type into the focused email field instead.
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - extendedWaitUntil:
+          visible: "Pick an account.*"
+          timeout: 20000
+      - tapOn: "Pick an account.*"
+      - tapOn: "alex@example.com"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: "com.android.chrome:id/url_bar"
+          timeout: 20000
+      - waitForAnimationToEnd
+      - inputText: "alex@example.com"
+      - pressKey: Enter
 - extendedWaitUntil:
     visible: "Practice"
     timeout: 20000
@@ -66,13 +83,25 @@ name: Sign in, track a habit, sign out
     when:
       platform: iOS
     commands:
+      - waitForAnimationToEnd
       - tapOn: "Save"
+      # The glass toolbar sometimes drops the first tap while the keyboard
+      # is up; tap again if the form is still open.
+      - runFlow:
+          when:
+            visible: "Category"
+          commands:
+            - tapOn: "Save"
 - runFlow:
     when:
       platform: Android
     commands:
       - hideKeyboard
       - tapOn: "Add Habit"
+# The sheet closes once the server has saved the habit.
+- extendedWaitUntil:
+    notVisible: "Category"
+    timeout: 10000
 - extendedWaitUntil:
     visible: "Maestro check"
     timeout: 10000
@@ -102,5 +131,5 @@ name: Sign in, track a habit, sign out
 - tapOn: "Sign Out"
 - tapOn: "Sign Out"
 - extendedWaitUntil:
-    visible: "Track your habits and build streaks."
+    visible: "Build habits that stick.*"
     timeout: 10000
