@@ -7,9 +7,9 @@ export default function Layout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: !isWeb,
         headerLargeTitle: true,
         headerLargeTitleShadowVisible: false,
+        headerShown: !isWeb,
       }}
     >
       <Stack.Screen name="index" options={{ title: "Practice" }} />
@@ -20,8 +20,8 @@ export default function Layout() {
             ? {}
             : {
                 presentation: "formSheet",
-                sheetGrabberVisible: true,
                 sheetAllowedDetents: [0.5, 1.0],
+                sheetGrabberVisible: true,
               }),
         }}
       />
@@ -32,8 +32,8 @@ export default function Layout() {
             ? {}
             : {
                 presentation: "formSheet",
-                sheetGrabberVisible: true,
                 sheetAllowedDetents: [0.5, 1.0],
+                sheetGrabberVisible: true,
               }),
         }}
       />

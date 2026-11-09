@@ -1,7 +1,3 @@
-import { ClerkProvider, useAuth } from "@clerk/expo";
-import { tokenCache } from "@clerk/expo/token-cache";
-import { ConvexReactClient } from "convex/react";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Stack } from "expo-router";
 import {
   DarkTheme,
@@ -13,18 +9,16 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitsProvider } from "../habits-store";
+import { restoreSession, useSession } from "../session";
 import {
   ThemePreferenceProvider,
   useThemePreference,
 } from "../theme-preference";
 
-const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
-const convexUrl =
-  process.env.EXPO_PUBLIC_CONVEX_URL ?? "https://unset-practice.convex.cloud";
-const convex = new ConvexReactClient(convexUrl);
 const SPLASH_TIMEOUT_MS = 10_000;
 
 preventAutoHideAsync();
+restoreSession();
 
 export const unstable_settings = {
   anchor: "(home)",
@@ -32,23 +26,19 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   return (
-    <ClerkProvider publishableKey={clerkPublishableKey} tokenCache={tokenCache}>
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <ThemePreferenceProvider>
-          <HabitsProvider>
-            <ThemedLayout />
-          </HabitsProvider>
-        </ThemePreferenceProvider>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <ThemePreferenceProvider>
+      <HabitsProvider>
+        <ThemedLayout />
+      </HabitsProvider>
+    </ThemePreferenceProvider>
   );
 }
 
 function ThemedLayout() {
   const { resolvedScheme } = useThemePreference();
-  const { isLoaded, isSignedIn } = useAuth({
-    treatPendingAsSignedOut: false,
-  });
+  const session = useSession();
+  const isLoaded = session.status !== "loading";
+  const isSignedIn = session.status === "signedIn";
   const [splashTimedOut, setSplashTimedOut] = useState(false);
 
   useEffect(() => {
@@ -71,8 +61,8 @@ function ThemedLayout() {
     colors: { ...baseTheme.colors, primary: APP_ACCENT_COLOR },
   };
 
-  // Keep the native splash covering the screen until Clerk resolves the
-  // persisted session (or the timeout fires) so signed-in cold starts go
+  // Keep the native splash covering the screen until the stored session
+  // is restored (or the timeout fires) so signed-in cold starts go
   // straight to home without flashing the sign-in screen.
   if (!ready) {
     return null;
@@ -82,10 +72,10 @@ function ThemedLayout() {
     <ThemeProvider value={themedNavigation}>
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack screenOptions={{ headerShown: false }}>
-        <Stack.Protected guard={Boolean(isSignedIn)}>
+        <Stack.Protected guard={isSignedIn} redirectTo="/sign-in">
           <Stack.Screen name="(home)" />
         </Stack.Protected>
-        <Stack.Protected guard={!isSignedIn}>
+        <Stack.Protected guard={!isSignedIn} redirectTo="/">
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>

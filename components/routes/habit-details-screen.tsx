@@ -10,7 +10,7 @@ import { Shell, useIsWide } from "../web/shell";
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
   const habitId = Array.isArray(id) ? id[0] : id;
-  const { habits, isLoaded, today } = useHabits();
+  const { habits, isLoaded } = useHabits();
   const isWide = useIsWide();
   const palette = usePalette();
 
@@ -29,7 +29,7 @@ export default function HabitDetailsScreen() {
   }
 
   // Default-select-first: fall back to the first habit when the URL id does
-  // not resolve to a habit (e.g. an optimistic-create temp id mid-flight).
+  // not resolve to a habit (e.g. after it was deleted elsewhere).
   const selectedHabit =
     habits.find((habit) => habit.id === habitId) ?? habits[0];
 
@@ -37,14 +37,10 @@ export default function HabitDetailsScreen() {
     <Shell title="Practice">
       <View style={isWide ? styles.desktop : styles.mobile}>
         {isWide ? (
-          <HabitListPane
-            habits={habits}
-            selectedHabitId={selectedHabit?.id}
-            today={today}
-          />
+          <HabitListPane habits={habits} selectedHabitId={selectedHabit?.id} />
         ) : null}
         <View style={styles.detailPane}>
-          <HabitDetailPane habit={selectedHabit} />
+          <HabitDetailPane habitId={selectedHabit?.id} />
         </View>
       </View>
     </Shell>

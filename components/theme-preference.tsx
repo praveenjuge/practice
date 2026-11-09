@@ -46,7 +46,7 @@ const ThemePreferenceContext =
 
 const resolveScheme = (
   preference: ThemePreference,
-  systemScheme: ColorSchemeName
+  systemScheme: ColorSchemeName | null
 ): "light" | "dark" => {
   if (preference === "system") {
     return systemScheme === "dark" ? "dark" : "light";
@@ -102,10 +102,10 @@ export function ThemePreferenceProvider({
 
   const value = useMemo(
     () => ({
+      isLoaded: true,
       preference,
       resolvedScheme,
       setPreference,
-      isLoaded: true,
     }),
     [preference, resolvedScheme, setPreference]
   );

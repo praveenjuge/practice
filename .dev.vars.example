@@ -1,0 +1,5 @@
+# Local Worker settings for `wrangler dev`. Copy to .dev.vars.
+# Use the WorkOS *Staging* environment of the Practice project.
+APP_ORIGIN=http://localhost:8787
+WORKOS_CLIENT_ID=client_01M706HR8ZF0PNJYD6BQ1NQNZT
+WORKOS_API_KEY=

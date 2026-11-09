@@ -1,11 +1,27 @@
 {
   "$schema": "./node_modules/wrangler/config-schema.json",
   "name": "practice",
-  "compatibility_date": "2026-05-25",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-11-01",
   "build": { "command": "npm run build:web" },
   "assets": {
     "directory": "./dist",
-    "not_found_handling": "single-page-application"
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "practice",
+      "database_id": "cace94aa-4196-4403-9155-94edad3c3c39",
+      "migrations_dir": "migrations"
+    }
+  ],
+  // Production values. Local dev overrides them in .dev.vars (staging WorkOS
+  // client, localhost origin); WORKOS_API_KEY is a secret (wrangler secret put).
+  "vars": {
+    "APP_ORIGIN": "https://practice.praveenjuge.com",
+    "WORKOS_CLIENT_ID": "client_01M706HRMNH3MYSY9WDDNSYSBP"
   },
   "routes": [
     {

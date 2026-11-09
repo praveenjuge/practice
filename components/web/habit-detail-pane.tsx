@@ -1,73 +1,105 @@
 import { Text } from "@expo/ui";
 import { router } from "expo-router";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { getHabitCategory } from "../habit-categories";
+import { getHabitCategory } from "../../shared/habit-categories";
 import { HabitStreakHistory } from "../habit-streak-history";
-import {
-  getYearHabitHistory,
-  type Habit,
-  hasCheckInToday,
-  useHabits,
-} from "../habits-store";
+import { useHabitDetail, useHabits } from "../habits-store";
 import { DeleteDialog } from "./delete-dialog";
 import { ActionRow, InsetSection, KeyValueRow } from "./inset-section";
 import { DANGER_COLOR, FONT_SUBHEAD, usePalette } from "./palette";
 
 const CHEVRON_GLYPH = "›";
 
-export function HabitDetailPane({ habit }: { habit?: Habit }) {
-  const { deleteHabit, today, toggleCheckInToday } = useHabits();
+function EmptyDetail({ title, message }: { message: string; title: string }) {
+  const palette = usePalette();
+  return (
+    <View style={styles.empty}>
+      <Text
+        textStyle={{ color: palette.text, fontSize: 22, fontWeight: "700" }}
+      >
+        {title}
+      </Text>
+      <Text
+        textStyle={{
+          color: palette.secondary,
+          fontSize: FONT_SUBHEAD,
+          textAlign: "center",
+        }}
+      >
+        {message}
+      </Text>
+    </View>
+  );
+}
+
+export function HabitDetailPane({ habitId }: { habitId?: string }) {
+  const { deleteHabit, toggleCheckInToday } = useHabits();
+  const result = useHabitDetail(habitId);
+  const habit = result.status === "ready" ? result.detail : undefined;
   const palette = usePalette();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  if (!habit) {
-    return (
-      <View style={styles.empty}>
-        <Text
-          textStyle={{ color: palette.text, fontSize: 22, fontWeight: "700" }}
-        >
-          Select a habit
-        </Text>
-        <Text
-          textStyle={{
-            color: palette.secondary,
-            fontSize: FONT_SUBHEAD,
-            textAlign: "center",
-          }}
-        >
-          Choose a habit from the list to see its streak history.
-        </Text>
-      </View>
-    );
-  }
-
-  const stats = habit.stats;
-  const isComplete = hasCheckInToday(habit.checkins, today);
-  const history = getYearHabitHistory(habit.checkins, today);
-  const lastCheckin = stats.lastCheckin ?? "Never";
-
-  const handleToggle = () => {
+  const handleToggle = useCallback(() => {
+    if (!habit) {
+      return;
+    }
     setError(null);
-    toggleCheckInToday(habit.id).catch((err) => {
-      setError(err instanceof Error ? err.message : "Unable to update habit.");
+    toggleCheckInToday(habit.id).catch((reason: unknown) => {
+      setError(
+        reason instanceof Error ? reason.message : "Unable to update habit."
+      );
     });
-  };
+  }, [habit, toggleCheckInToday]);
 
-  const handleDelete = () => {
+  const handleDelete = useCallback(() => {
+    if (!habit) {
+      return;
+    }
     setError(null);
     deleteHabit(habit.id)
       .then(() => {
         setDeleting(false);
         router.replace("/");
       })
-      .catch((err) => {
+      .catch((reason: unknown) => {
         setError(
-          err instanceof Error ? err.message : "Unable to delete habit."
+          reason instanceof Error ? reason.message : "Unable to delete habit."
         );
       });
-  };
+  }, [deleteHabit, habit]);
+
+  const handleEdit = useCallback(() => {
+    if (habit) {
+      router.push(`/habit/edit/${habit.id}`);
+    }
+  }, [habit]);
+
+  const openDeleteDialog = useCallback(() => setDeleting(true), []);
+  const closeDeleteDialog = useCallback(() => setDeleting(false), []);
+
+  if (!habitId) {
+    return (
+      <EmptyDetail
+        message="Choose a habit from the list to see its streak history."
+        title="Select a habit"
+      />
+    );
+  }
+  if (result.status === "loading") {
+    return <View style={styles.empty} />;
+  }
+  if (!habit) {
+    return (
+      <EmptyDetail
+        message="This habit no longer exists."
+        title="Habit not found"
+      />
+    );
+  }
+
+  const { checkedToday, history, stats } = habit;
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -97,7 +129,10 @@ export function HabitDetailPane({ habit }: { habit?: Habit }) {
       </InsetSection>
       <InsetSection title="Progress">
         <KeyValueRow label="Total check-ins" value={`${stats.totalCheckins}`} />
-        <KeyValueRow label="Last check-in" value={lastCheckin} />
+        <KeyValueRow
+          label="Last check-in"
+          value={stats.lastCheckin ?? "Never"}
+        />
       </InsetSection>
       <InsetSection title="History">
         <View style={styles.historyWrap}>
@@ -106,26 +141,27 @@ export function HabitDetailPane({ habit }: { habit?: Habit }) {
       </InsetSection>
       <InsetSection title="Actions">
         <ActionRow
-          label={isComplete ? "Mark as Incomplete" : "Mark as Complete"}
+          label={checkedToday ? "Mark as Incomplete" : "Mark as Complete"}
           onPress={handleToggle}
         />
         <ActionRow
           label="Edit habit"
-          onPress={() => router.push(`/habit/edit/${habit.id}`)}
+          onPress={handleEdit}
           trailingGlyph={CHEVRON_GLYPH}
         />
         <ActionRow
           destructive
           label="Delete habit"
-          onPress={() => setDeleting(true)}
+          onPress={openDeleteDialog}
           trailingGlyph={CHEVRON_GLYPH}
         />
       </InsetSection>
       {deleting ? (
         <DeleteDialog
-          habitName={habit.name}
-          onCancel={() => setDeleting(false)}
+          message={`This removes ${habit.name} and all of its streak history.`}
+          onCancel={closeDeleteDialog}
           onConfirm={handleDelete}
+          title="Delete habit?"
         />
       ) : null}
     </ScrollView>

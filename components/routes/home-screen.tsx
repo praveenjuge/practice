@@ -7,7 +7,7 @@ import { FONT_SUBHEAD, usePalette } from "../web/palette";
 import { Shell, useIsWide } from "../web/shell";
 
 export default function HomeScreen() {
-  const { habits, isLoaded, today } = useHabits();
+  const { habits, isLoaded } = useHabits();
   const isWide = useIsWide();
   const palette = usePalette();
 
@@ -28,10 +28,10 @@ export default function HomeScreen() {
   return (
     <Shell title="Practice">
       <View style={isWide ? styles.desktop : styles.mobile}>
-        <HabitListPane habits={habits} today={today} />
+        <HabitListPane habits={habits} />
         {isWide ? (
           <View style={styles.detailPane}>
-            <HabitDetailPane habit={undefined} />
+            <HabitDetailPane />
           </View>
         ) : null}
       </View>

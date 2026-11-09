@@ -1,47 +1,29 @@
-import { HStack, RoundedRectangle, ScrollView } from "@expo/ui/swift-ui";
-import {
-  defaultScrollAnchor,
-  foregroundStyle,
-  frame,
-  layoutPriority,
-} from "@expo/ui/swift-ui/modifiers";
-import { PlatformColor } from "react-native";
+import { Row, Spacer } from "@expo/ui";
 import { APP_ACCENT_COLOR } from "./app-colors";
-import type { RollingWeekDay } from "./habits-store";
+import type { RecentDay } from "./habits-store";
 
-const BOX_WIDTH = 16;
-const BOX_HEIGHT = 16;
+// Fits a phone row without scrolling; iOS shows all recent days in a
+// trailing-anchored scroll view instead (weekly-streak-boxes.ios.tsx).
+const VISIBLE_DAYS = 14;
+const BOX_SIZE = 14;
 const BOX_CORNER_RADIUS = 4;
 const BOX_SPACING = 4;
-const MISSED_COLOR = PlatformColor("tertiarySystemFill") as unknown as string;
+const MISSED_COLOR = "#d8dde4";
 
-interface WeeklyStreakBoxesProps {
-  days: RollingWeekDay[];
-}
-
-export function WeeklyStreakBoxes({ days }: WeeklyStreakBoxesProps) {
+export function WeeklyStreakBoxes({ days }: { days: RecentDay[] }) {
   return (
-    <ScrollView
-      axes="horizontal"
-      modifiers={[
-        defaultScrollAnchor("trailing"),
-        frame({ maxWidth: Number.POSITIVE_INFINITY }),
-        layoutPriority(1),
-      ]}
-      showsIndicators={false}
-    >
-      <HStack spacing={BOX_SPACING}>
-        {days.map((day) => (
-          <RoundedRectangle
-            cornerRadius={BOX_CORNER_RADIUS}
-            key={day.date}
-            modifiers={[
-              foregroundStyle(day.completed ? APP_ACCENT_COLOR : MISSED_COLOR),
-              frame({ height: BOX_HEIGHT, width: BOX_WIDTH }),
-            ]}
-          />
-        ))}
-      </HStack>
-    </ScrollView>
+    <Row spacing={BOX_SPACING}>
+      {days.slice(-VISIBLE_DAYS).map((day) => (
+        <Spacer
+          key={day.date}
+          style={{
+            backgroundColor: day.completed ? APP_ACCENT_COLOR : MISSED_COLOR,
+            borderRadius: BOX_CORNER_RADIUS,
+            height: BOX_SIZE,
+            width: BOX_SIZE,
+          }}
+        />
+      ))}
+    </Row>
   );
 }

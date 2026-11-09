@@ -1,30 +1,30 @@
 import { Column, Host, Text } from "@expo/ui";
-import { router } from "expo-router";
+import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { signIn } from "../session";
 import { DANGER_COLOR, FONT_SUBHEAD, usePalette } from "./palette";
 import { AppButton } from "./pointer";
 
-const WEB_SIGN_IN_URL = process.env.EXPO_PUBLIC_CLERK_SIGN_IN_URL ?? "";
-
-export function openHostedSignIn() {
-  if (!WEB_SIGN_IN_URL || typeof window === "undefined") {
-    router.replace("/");
-    return;
-  }
-  const url = new URL(WEB_SIGN_IN_URL);
-  url.searchParams.set(
-    "redirect_url",
-    new URL("/", window.location.origin).href
-  );
-  window.location.href = url.href;
-}
-
 export function AuthGate() {
   const palette = usePalette();
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSignIn = useCallback(() => {
+    setBusy(true);
+    setError(null);
+    signIn()
+      .catch((reason: unknown) => {
+        setError(
+          reason instanceof Error ? reason.message : "Please try again."
+        );
+      })
+      .finally(() => setBusy(false));
+  }, []);
+
   return (
     <View style={[styles.root, { backgroundColor: palette.page }]}>
-      <Host
-        matchContents
+      <View
         style={[
           styles.card,
           {
@@ -34,41 +34,46 @@ export function AuthGate() {
           },
         ]}
       >
-        <Column alignment="center" spacing={18}>
-          <Text
-            textStyle={{
-              color: palette.text,
-              fontSize: 28,
-              fontWeight: "700",
-              textAlign: "center",
-            }}
-          >
-            Practice
-          </Text>
-          <Text
-            textStyle={{
-              color: palette.secondary,
-              fontSize: FONT_SUBHEAD,
-              lineHeight: 22,
-              textAlign: "center",
-            }}
-          >
-            Track your habits and build streaks. Sign in to get started.
-          </Text>
-          <AppButton label="Continue with Clerk" onPress={openHostedSignIn} />
-          {WEB_SIGN_IN_URL ? null : (
+        <Host matchContents>
+          <Column alignment="center" spacing={18}>
             <Text
               textStyle={{
-                color: DANGER_COLOR,
-                fontSize: 14,
+                color: palette.text,
+                fontSize: 28,
+                fontWeight: "700",
                 textAlign: "center",
               }}
             >
-              Set EXPO_PUBLIC_CLERK_SIGN_IN_URL to enable hosted web sign-in.
+              Practice
             </Text>
-          )}
-        </Column>
-      </Host>
+            <Text
+              textStyle={{
+                color: palette.secondary,
+                fontSize: FONT_SUBHEAD,
+                lineHeight: 22,
+                textAlign: "center",
+              }}
+            >
+              Track your habits and build streaks. Sign in to get started.
+            </Text>
+            <AppButton
+              label={busy ? "Signing in…" : "Continue"}
+              onPress={handleSignIn}
+            />
+            {error ? (
+              <Text
+                textStyle={{
+                  color: DANGER_COLOR,
+                  fontSize: 14,
+                  textAlign: "center",
+                }}
+              >
+                {error}
+              </Text>
+            ) : null}
+          </Column>
+        </Host>
+      </View>
     </View>
   );
 }

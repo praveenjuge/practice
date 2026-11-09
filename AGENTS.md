@@ -162,18 +162,13 @@ This project ships to the App Store via EAS. Release config lives in `eas.json`,
 
 - Patch (`1.1.0` → `1.1.1`): bug fixes only, no user-visible behavior changes.
 - Minor (`1.1.0` → `1.2.0`): user-facing feature additions.
-- Major (`1.x.y` → `2.0.0`): breaking changes to data shape, iCloud schema migrations, or major UX overhauls.
+- Major (`1.x.y` → `2.0.0`): breaking changes to data shape, D1 schema migrations that break older clients, or major UX overhauls.
 
-<!-- convex-ai-start -->
+## Backend
 
-This project uses [Convex](https://convex.dev) as its backend.
+The backend is a Cloudflare Worker (`worker/`, Hono) with D1 (`migrations/`) and WorkOS AuthKit for auth.
 
-When working on Convex code, **always read
-`convex/_generated/ai/guidelines.md` first** for important guidelines on
-how to correctly use Convex APIs and patterns. The file contains rules that
-override what you may have learned about Convex from training data.
-
-Convex agent skills for common tasks can be installed by running
-`npx convex ai-files install`.
-
-<!-- convex-ai-end -->
+- Keep logic on the server: validation, streaks and history are computed in `worker/`; the apps render what the API returns.
+- Schema changes go in a new numbered file in `migrations/`; never edit an applied migration.
+- Run `bun run test:api` after changing `worker/`. Tests run in the Workers runtime against a local D1.
+- WorkOS project: "Practice" (Staging for local dev via `.dev.vars`, Production for the deployed Worker).

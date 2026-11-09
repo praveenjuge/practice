@@ -1,21 +1,16 @@
-import { ClerkProvider, useAuth } from "@clerk/expo";
 import { Column, Host, Text } from "@expo/ui";
-import { ConvexReactClient } from "convex/react";
-import { ConvexProviderWithClerk } from "convex/react-clerk";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitsProvider } from "../habits-store";
+import { restoreSession, useSession } from "../session";
 import {
   ThemePreferenceProvider,
   useThemePreference,
 } from "../theme-preference";
 import { FONT_SUBHEAD, usePalette } from "../web/palette";
 
-const clerkPublishableKey = process.env.EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY ?? "";
-const convexUrl =
-  process.env.EXPO_PUBLIC_CONVEX_URL ?? "https://unset-practice.convex.cloud";
-const convex = new ConvexReactClient(convexUrl);
+restoreSession();
 
 export const unstable_settings = {
   anchor: "(home)",
@@ -23,27 +18,24 @@ export const unstable_settings = {
 
 export default function RootLayout() {
   return (
-    <ClerkProvider publishableKey={clerkPublishableKey}>
-      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
-        <ThemePreferenceProvider>
-          <HabitsProvider>
-            <ThemedLayout />
-          </HabitsProvider>
-        </ThemePreferenceProvider>
-      </ConvexProviderWithClerk>
-    </ClerkProvider>
+    <ThemePreferenceProvider>
+      <HabitsProvider>
+        <ThemedLayout />
+      </HabitsProvider>
+    </ThemePreferenceProvider>
   );
 }
 
 function ThemedLayout() {
   const { resolvedScheme } = useThemePreference();
-  const { isLoaded, isSignedIn } = useAuth();
+  const session = useSession();
+  const isSignedIn = session.status === "signedIn";
   const isDark = resolvedScheme === "dark";
   const palette = usePalette();
 
-  // Gate routing until Clerk restores the session so we never mount the
-  // (auth) group during session restore on the web.
-  if (!isLoaded) {
+  // Gate routing until the session is restored so we never mount the
+  // (auth) group while the refresh cookie is being checked.
+  if (session.status === "loading") {
     return (
       <Host
         style={{
@@ -69,14 +61,14 @@ function ThemedLayout() {
       <StatusBar style={isDark ? "light" : "dark"} />
       <Stack
         screenOptions={{
-          headerShown: false,
           contentStyle: { backgroundColor: APP_ACCENT_COLOR },
+          headerShown: false,
         }}
       >
-        <Stack.Protected guard={Boolean(isSignedIn)}>
+        <Stack.Protected guard={isSignedIn} redirectTo="/sign-in">
           <Stack.Screen name="(home)" />
         </Stack.Protected>
-        <Stack.Protected guard={!isSignedIn}>
+        <Stack.Protected guard={!isSignedIn} redirectTo="/">
           <Stack.Screen name="(auth)" />
         </Stack.Protected>
       </Stack>

@@ -1,34 +1,33 @@
 import { Text, TextInput } from "@expo/ui";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import {
-  getRollingWeekCheckins,
-  type Habit,
-  hasCheckInToday,
-} from "../habits-store";
+import type { Habit } from "../habits-store";
 import { FONT_SUBHEAD, usePalette } from "./palette";
 import { AppButton, HoverPressable } from "./pointer";
 
 const MINI_DOT_COUNT = 14;
+const openNewHabit = () => router.push("/habit/new");
 
-function HabitRow({
+const HabitRow = memo(function HabitRowContent({
   habit,
   isSelected,
-  today,
 }: {
   habit: Habit;
   isSelected: boolean;
-  today: string;
 }) {
   const palette = usePalette();
-  const isComplete = hasCheckInToday(habit.checkins, today);
-  const dots = getRollingWeekCheckins(habit.checkins, today, MINI_DOT_COUNT);
+  const isComplete = habit.checkedToday;
+  const dots = habit.recentDays.slice(-MINI_DOT_COUNT);
+  const handleOpen = useCallback(
+    () => router.push(`/habit/${habit.id}`),
+    [habit.id]
+  );
 
   return (
     <HoverPressable
       hoverStyle={{ backgroundColor: palette.hover }}
-      onPress={() => router.push(`/habit/${habit.id}`)}
+      onPress={handleOpen}
       style={[
         styles.row,
         isSelected ? { backgroundColor: palette.accentSoft } : null,
@@ -72,16 +71,14 @@ function HabitRow({
       </View>
     </HoverPressable>
   );
-}
+});
 
 export function HabitListPane({
   habits,
   selectedHabitId,
-  today,
 }: {
   habits: Habit[];
   selectedHabitId?: string;
-  today: string;
 }) {
   const palette = usePalette();
   const [query, setQuery] = useState("");
@@ -125,7 +122,7 @@ export function HabitListPane({
             textStyle={{ color: palette.text }}
           />
         </View>
-        <AppButton label="New" onPress={() => router.push("/habit/new")} />
+        <AppButton label="New" onPress={openNewHabit} />
       </View>
       <ScrollView contentContainerStyle={styles.content}>
         {filteredHabits.length === 0 ? (
@@ -141,7 +138,6 @@ export function HabitListPane({
               habit={habit}
               isSelected={habit.id === selectedHabitId}
               key={habit.id}
-              today={today}
             />
           ))
         )}

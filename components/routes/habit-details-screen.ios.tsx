@@ -11,24 +11,78 @@ import {
 import { foregroundStyle, tint } from "@expo/ui/swift-ui/modifiers";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useMemo } from "react";
+import { useCallback } from "react";
 import { Alert } from "react-native";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitStreakHistory } from "../habit-streak-history";
-import { getYearHabitHistory, useHabits } from "../habits-store";
+import { useHabitDetail, useHabits } from "../habits-store";
+
+const secondaryStyle = foregroundStyle({
+  style: "secondary",
+  type: "hierarchical",
+});
+
+const showActionError = (title: string, error: unknown) => {
+  Alert.alert(
+    title,
+    error instanceof Error ? error.message : "Please try again."
+  );
+};
 
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const { habits, deleteHabit, today, toggleCheckInToday } = useHabits();
+  const { deleteHabit, toggleCheckInToday } = useHabits();
   const habitId = Array.isArray(id) ? id[0] : id;
-  const habit = useMemo(
-    () => habits.find((item) => item.id === habitId),
-    [habits, habitId]
-  );
-  const historyWeeks = useMemo(
-    () => getYearHabitHistory(habit?.checkins ?? [], today),
-    [habit?.checkins, today]
-  );
+  const result = useHabitDetail(habitId);
+  const habit = result.status === "ready" ? result.detail : undefined;
+
+  const handleEdit = useCallback(() => {
+    if (habit) {
+      router.push(`/habit/edit/${habit.id}`);
+    }
+  }, [habit]);
+
+  const handleToggle = useCallback(() => {
+    if (!habit) {
+      return;
+    }
+    if (!habit.checkedToday) {
+      notificationAsync(NotificationFeedbackType.Success);
+    }
+    toggleCheckInToday(habit.id).catch((error: unknown) => {
+      showActionError("Unable to update habit", error);
+    });
+  }, [habit, toggleCheckInToday]);
+
+  const handleDelete = useCallback(() => {
+    if (!habit) {
+      return;
+    }
+    Alert.alert(
+      "Delete habit?",
+      "This removes the habit and its streak history.",
+      [
+        { style: "cancel", text: "Cancel" },
+        {
+          onPress: async () => {
+            notificationAsync(NotificationFeedbackType.Warning);
+            try {
+              await deleteHabit(habit.id);
+              router.back();
+            } catch (error) {
+              showActionError("Unable to delete habit", error);
+            }
+          },
+          style: "destructive",
+          text: "Delete",
+        },
+      ]
+    );
+  }, [deleteHabit, habit]);
+
+  if (result.status === "loading") {
+    return <Stack.Screen options={{ title: "" }} />;
+  }
 
   if (!habit) {
     return (
@@ -42,8 +96,8 @@ export default function HabitDetailsScreen() {
               <Text
                 modifiers={[
                   foregroundStyle({
-                    type: "hierarchical",
                     style: "secondary",
+                    type: "hierarchical",
                   }),
                 ]}
               >
@@ -56,62 +110,12 @@ export default function HabitDetailsScreen() {
     );
   }
 
-  const streaks = habit.stats;
-  const isCompletedToday = habit.checkins.includes(today);
-  const totalCheckins = habit.stats.totalCheckins;
-  const lastCheckin = habit.stats.lastCheckin ?? undefined;
-  const showActionError = (title: string, error: unknown) => {
-    Alert.alert(
-      title,
-      error instanceof Error ? error.message : "Please try again."
-    );
-  };
-
-  const handleEdit = () => {
-    router.push(`/habit/edit/${habit.id}`);
-  };
-
-  const handleToggle = () => {
-    if (!isCompletedToday) {
-      notificationAsync(NotificationFeedbackType.Success);
-    }
-    toggleCheckInToday(habit.id).catch((err) => {
-      showActionError("Unable to update habit", err);
-    });
-  };
-
-  const handleDelete = () => {
-    Alert.alert(
-      "Delete habit?",
-      "This removes the habit and its streak history.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            notificationAsync(NotificationFeedbackType.Warning);
-            try {
-              await deleteHabit(habit.id);
-              router.back();
-            } catch (err) {
-              showActionError("Unable to delete habit", err);
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  const secondaryStyle = foregroundStyle({
-    type: "hierarchical",
-    style: "secondary",
-  });
+  const { checkedToday, history, stats } = habit;
 
   return (
     <>
       <Stack.Screen
-        options={{ title: habit.name, headerBackButtonDisplayMode: "minimal" }}
+        options={{ headerBackButtonDisplayMode: "minimal", title: habit.name }}
       />
       <Host style={{ flex: 1 }}>
         <List>
@@ -121,36 +125,38 @@ export default function HabitDetailsScreen() {
               <Spacer />
               <Text
                 modifiers={[secondaryStyle]}
-              >{`${streaks.currentStreak}`}</Text>
+              >{`${stats.currentStreak}`}</Text>
             </HStack>
             <HStack>
               <Text>Highest</Text>
               <Spacer />
-              <Text
-                modifiers={[secondaryStyle]}
-              >{`${streaks.bestStreak}`}</Text>
+              <Text modifiers={[secondaryStyle]}>{`${stats.bestStreak}`}</Text>
             </HStack>
           </Section>
           <Section title="Progress">
             <HStack>
               <Text>Total check-ins</Text>
               <Spacer />
-              <Text modifiers={[secondaryStyle]}>{`${totalCheckins}`}</Text>
+              <Text
+                modifiers={[secondaryStyle]}
+              >{`${stats.totalCheckins}`}</Text>
             </HStack>
             <HStack>
               <Text>Last check-in</Text>
               <Spacer />
-              <Text modifiers={[secondaryStyle]}>{lastCheckin ?? "Never"}</Text>
+              <Text modifiers={[secondaryStyle]}>
+                {stats.lastCheckin ?? "Never"}
+              </Text>
             </HStack>
           </Section>
           <Section title="History">
-            <HabitStreakHistory weeks={historyWeeks} />
+            <HabitStreakHistory weeks={history} />
           </Section>
           <Section title="Actions">
             <Button modifiers={[tint(APP_ACCENT_COLOR)]} onPress={handleToggle}>
               <HStack>
                 <Text>
-                  {isCompletedToday ? "Mark as Incomplete" : "Mark as Complete"}
+                  {checkedToday ? "Mark as Incomplete" : "Mark as Complete"}
                 </Text>
                 <Spacer />
               </HStack>

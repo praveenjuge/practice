@@ -1,20 +1,64 @@
 import { Text, TextInput } from "@expo/ui";
 import { router } from "expo-router";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { MAX_HABIT_NAME_LENGTH } from "../../convex/model/stats";
+import { MAX_HABIT_NAME_LENGTH } from "../../shared/api-types";
 import {
   HABIT_CATEGORIES,
   HABIT_CATEGORY_GROUP_ORDER,
   type HabitCategoryId,
   resolveHabitCategoryId,
-} from "../habit-categories";
+} from "../../shared/habit-categories";
 import { useHabits } from "../habits-store";
 import { InsetSection } from "./inset-section";
 import { DANGER_COLOR, FONT_BODY, usePalette } from "./palette";
 import { AppButton, HoverPressable } from "./pointer";
 
 const CHECK_GLYPH = "✓";
+
+const goBack = () => router.back();
+
+function CategoryRow({
+  categoryId,
+  isSelected,
+  label,
+  onSelect,
+}: {
+  categoryId: HabitCategoryId;
+  isSelected: boolean;
+  label: string;
+  onSelect: (categoryId: HabitCategoryId) => void;
+}) {
+  const palette = usePalette();
+  const handlePress = useCallback(
+    () => onSelect(categoryId),
+    [categoryId, onSelect]
+  );
+  return (
+    <HoverPressable
+      hoverStyle={{ backgroundColor: palette.hover }}
+      onPress={handlePress}
+      style={styles.categoryRow}
+    >
+      <Text
+        textStyle={{
+          color: isSelected ? palette.accent : palette.text,
+          fontSize: FONT_BODY,
+        }}
+      >
+        {label}
+      </Text>
+      {isSelected ? (
+        <>
+          <View style={styles.spacer} />
+          <Text textStyle={{ color: palette.accent, fontSize: FONT_BODY }}>
+            {CHECK_GLYPH}
+          </Text>
+        </>
+      ) : null}
+    </HoverPressable>
+  );
+}
 
 export function HabitFormScreen({ habitId }: { habitId?: string }) {
   const { addHabit, habits, updateHabit } = useHabits();
@@ -38,7 +82,7 @@ export function HabitFormScreen({ habitId }: { habitId?: string }) {
     []
   );
 
-  const save = () => {
+  const save = useCallback(() => {
     setError(null);
     const run = async () => {
       if (isEditing) {
@@ -55,7 +99,7 @@ export function HabitFormScreen({ habitId }: { habitId?: string }) {
     run().catch((err) => {
       setError(err instanceof Error ? err.message : "Unable to save habit.");
     });
-  };
+  }, [addHabit, categoryId, existingHabit, isEditing, name, updateHabit]);
 
   return (
     <ScrollView contentContainerStyle={styles.page}>
@@ -75,39 +119,15 @@ export function HabitFormScreen({ habitId }: { habitId?: string }) {
         </InsetSection>
         {groupedCategories.map((section) => (
           <InsetSection key={section.group} title={section.group}>
-            {section.categories.map((category) => {
-              const selected = category.id === categoryId;
-              return (
-                <HoverPressable
-                  hoverStyle={{ backgroundColor: palette.hover }}
-                  key={category.id}
-                  onPress={() => setCategoryId(category.id)}
-                  style={styles.categoryRow}
-                >
-                  <Text
-                    textStyle={{
-                      color: selected ? palette.accent : palette.text,
-                      fontSize: FONT_BODY,
-                    }}
-                  >
-                    {category.label}
-                  </Text>
-                  {selected ? (
-                    <>
-                      <View style={styles.spacer} />
-                      <Text
-                        textStyle={{
-                          color: palette.accent,
-                          fontSize: FONT_BODY,
-                        }}
-                      >
-                        {CHECK_GLYPH}
-                      </Text>
-                    </>
-                  ) : null}
-                </HoverPressable>
-              );
-            })}
+            {section.categories.map((category) => (
+              <CategoryRow
+                categoryId={category.id}
+                isSelected={category.id === categoryId}
+                key={category.id}
+                label={category.label}
+                onSelect={setCategoryId}
+              />
+            ))}
           </InsetSection>
         ))}
         {error ? (
@@ -116,11 +136,7 @@ export function HabitFormScreen({ habitId }: { habitId?: string }) {
           </Text>
         ) : null}
         <View style={styles.footer}>
-          <AppButton
-            label="Cancel"
-            onPress={() => router.back()}
-            variant="outlined"
-          />
+          <AppButton label="Cancel" onPress={goBack} variant="outlined" />
           <AppButton label={isEditing ? "Save" : "Create"} onPress={save} />
         </View>
       </View>

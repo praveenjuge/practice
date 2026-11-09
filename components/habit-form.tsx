@@ -18,7 +18,7 @@ import {
   type HabitCategoryGroup,
   type HabitCategoryId,
   resolveHabitCategoryId,
-} from "./habit-categories";
+} from "../shared/habit-categories";
 
 export interface HabitFormInput {
   categoryId: HabitCategoryId;
@@ -68,6 +68,38 @@ function NativeTextInput({
   );
 }
 
+function CategoryOption({
+  categoryId,
+  group,
+  isSelected,
+  label,
+  onSelect,
+}: {
+  categoryId: HabitCategoryId;
+  group: string;
+  isSelected: boolean;
+  label: string;
+  onSelect: (categoryId: HabitCategoryId) => void;
+}) {
+  const handlePress = useCallback(
+    () => onSelect(categoryId),
+    [categoryId, onSelect]
+  );
+  return (
+    <ListItem
+      onPress={handlePress}
+      supportingText={group}
+      trailing={
+        isSelected ? (
+          <Text textStyle={{ color: "#34c759" }}>Selected</Text>
+        ) : undefined
+      }
+    >
+      {label}
+    </ListItem>
+  );
+}
+
 export function HabitForm({
   autoFocusName,
   initialName,
@@ -101,22 +133,27 @@ export function HabitForm({
           );
 
     return HABIT_CATEGORY_GROUP_ORDER.map((group) => ({
-      group,
       categories: filteredCategories.filter(
         (category) => category.group === group
       ),
+      group,
     })).filter((section) => section.categories.length > 0);
   }, [searchQuery]);
 
-  const openCategorySheet = () => {
+  const openCategorySheet = useCallback(() => {
     setSearchQuery("");
     setSearchInputKey((value) => value + 1);
     setIsCategorySheetOpen(true);
-  };
+  }, []);
 
-  const closeCategorySheet = () => {
+  const closeCategorySheet = useCallback(() => {
     setIsCategorySheetOpen(false);
-  };
+  }, []);
+
+  const selectCategory = useCallback((categoryId: HabitCategoryId) => {
+    setSelectedCategoryId(categoryId);
+    setIsCategorySheetOpen(false);
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (isSaving) {
@@ -124,7 +161,7 @@ export function HabitForm({
     }
     setIsSaving(true);
     try {
-      await onSubmit({ name, categoryId: selectedCategoryId });
+      await onSubmit({ categoryId: selectedCategoryId, name });
     } catch (error) {
       Alert.alert(
         submitErrorTitle,
@@ -199,21 +236,14 @@ export function HabitForm({
             ) : (
               groupedCategories.map((section) =>
                 section.categories.map((category) => (
-                  <ListItem
+                  <CategoryOption
+                    categoryId={category.id}
+                    group={section.group}
+                    isSelected={category.id === selectedCategoryId}
                     key={category.id}
-                    onPress={() => {
-                      setSelectedCategoryId(category.id);
-                      closeCategorySheet();
-                    }}
-                    supportingText={section.group}
-                    trailing={
-                      category.id === selectedCategoryId ? (
-                        <Text textStyle={{ color: "#34c759" }}>Selected</Text>
-                      ) : undefined
-                    }
-                  >
-                    {category.label}
-                  </ListItem>
+                    label={category.label}
+                    onSelect={selectCategory}
+                  />
                 ))
               )
             )}

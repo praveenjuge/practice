@@ -41,3 +41,8 @@ yarn-error.*
 /android
 package-lock.json
 build-*.ipa
+
+# Wrangler local secrets
+.dev.vars*
+!.dev.vars.example
+.wrangler/

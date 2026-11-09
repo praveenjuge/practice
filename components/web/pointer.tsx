@@ -1,5 +1,5 @@
 import { Text } from "@expo/ui";
-import type { ReactNode } from "react";
+import { type ReactNode, useCallback } from "react";
 import {
   Pressable,
   type PressableStateCallbackType,
@@ -46,23 +46,27 @@ export function HoverPressable({
 }: HoverPressableProps) {
   const palette = usePalette();
   const accent = focusColor ?? palette.accent;
+  const resolveStyle = useCallback(
+    (state: PressableStateCallbackType) => {
+      const pointer = pointerState(state);
+      const focusRing: ViewStyle = { boxShadow: `0 0 0 2px ${accent}` };
+      return [
+        style,
+        pointer.hovered && !disabled
+          ? (hoverStyle ?? { backgroundColor: palette.hover })
+          : null,
+        pointer.focused ? focusRing : null,
+      ];
+    },
+    [accent, disabled, hoverStyle, palette.hover, style]
+  );
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
       disabled={disabled}
       onPress={onPress}
       role={role}
-      style={(state) => {
-        const pointer = pointerState(state);
-        const focusRing: ViewStyle = { boxShadow: `0 0 0 2px ${accent}` };
-        return [
-          style,
-          pointer.hovered && !disabled
-            ? (hoverStyle ?? { backgroundColor: palette.hover })
-            : null,
-          pointer.focused ? focusRing : null,
-        ];
-      }}
+      style={resolveStyle}
     >
       {children}
     </Pressable>

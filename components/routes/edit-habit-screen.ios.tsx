@@ -52,8 +52,8 @@ export default function EditHabitScreen() {
               <Text
                 modifiers={[
                   foregroundStyle({
-                    type: "hierarchical",
                     style: "secondary",
+                    type: "hierarchical",
                   }),
                 ]}
               >
@@ -72,8 +72,8 @@ export default function EditHabitScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "Edit Habit",
           headerLargeTitleEnabled: false,
+          title: "Edit Habit",
         }}
       />
       <Stack.Toolbar placement="right">

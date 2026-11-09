@@ -35,8 +35,8 @@ export default function NewHabitScreen() {
     <>
       <Stack.Screen
         options={{
-          title: "New Habit",
           headerLargeTitleEnabled: false,
+          title: "New Habit",
         }}
       />
       <Stack.Toolbar placement="right">

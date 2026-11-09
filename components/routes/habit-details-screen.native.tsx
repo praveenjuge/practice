@@ -1,11 +1,11 @@
 import { Button, Host, Icon, List, ListItem } from "@expo/ui";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useMemo } from "react";
+import { useCallback } from "react";
 import { Alert } from "react-native";
 import { APP_ACCENT_COLOR } from "../app-colors";
 import { HabitStreakHistory } from "../habit-streak-history";
-import { getYearHabitHistory, useHabits } from "../habits-store";
+import { useHabitDetail, useHabits } from "../habits-store";
 import {
   CHECK_ICON,
   CIRCLE_ICON,
@@ -13,18 +13,70 @@ import {
   EDIT_ICON,
 } from "../native-icons";
 
+const UNCHECKED_COLOR = "#8b949e";
+const DANGER_COLOR = "#ef4444";
+
+const showActionError = (title: string, error: unknown) => {
+  Alert.alert(
+    title,
+    error instanceof Error ? error.message : "Please try again."
+  );
+};
+
 export default function HabitDetailsScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const { habits, deleteHabit, today, toggleCheckInToday } = useHabits();
+  const { deleteHabit, today, toggleCheckInToday } = useHabits();
   const habitId = Array.isArray(id) ? id[0] : id;
-  const habit = useMemo(
-    () => habits.find((item) => item.id === habitId),
-    [habits, habitId]
-  );
-  const historyWeeks = useMemo(
-    () => getYearHabitHistory(habit?.checkins ?? [], today),
-    [habit?.checkins, today]
-  );
+  const result = useHabitDetail(habitId);
+  const habit = result.status === "ready" ? result.detail : undefined;
+
+  const handleEdit = useCallback(() => {
+    if (habit) {
+      router.push(`/habit/edit/${habit.id}`);
+    }
+  }, [habit]);
+
+  const handleToggle = useCallback(() => {
+    if (!habit) {
+      return;
+    }
+    if (!habit.checkedToday) {
+      notificationAsync(NotificationFeedbackType.Success);
+    }
+    toggleCheckInToday(habit.id).catch((error: unknown) => {
+      showActionError("Unable to update habit", error);
+    });
+  }, [habit, toggleCheckInToday]);
+
+  const handleDelete = useCallback(() => {
+    if (!habit) {
+      return;
+    }
+    Alert.alert(
+      "Delete habit?",
+      "This removes the habit and its streak history.",
+      [
+        { style: "cancel", text: "Cancel" },
+        {
+          onPress: async () => {
+            notificationAsync(NotificationFeedbackType.Warning);
+            try {
+              await deleteHabit(habit.id);
+              router.back();
+            } catch (error) {
+              showActionError("Unable to delete habit", error);
+            }
+          },
+          style: "destructive",
+          text: "Delete",
+        },
+      ]
+    );
+  }, [deleteHabit, habit]);
+
+  if (result.status === "loading") {
+    return <Stack.Screen options={{ title: "" }} />;
+  }
 
   if (!habit) {
     return (
@@ -41,49 +93,7 @@ export default function HabitDetailsScreen() {
     );
   }
 
-  const streaks = habit.stats;
-  const isCompletedToday = habit.checkins.includes(today);
-  const totalCheckins = habit.stats.totalCheckins;
-  const lastCheckin = habit.stats.lastCheckin ?? undefined;
-
-  const showActionError = (title: string, err: unknown) => {
-    Alert.alert(
-      title,
-      err instanceof Error ? err.message : "Please try again."
-    );
-  };
-
-  const handleToggle = () => {
-    if (!isCompletedToday) {
-      notificationAsync(NotificationFeedbackType.Success);
-    }
-    toggleCheckInToday(habit.id).catch((err) => {
-      showActionError("Unable to update habit", err);
-    });
-  };
-
-  const handleDelete = () => {
-    Alert.alert(
-      "Delete habit?",
-      "This removes the habit and its streak history.",
-      [
-        { style: "cancel", text: "Cancel" },
-        {
-          onPress: async () => {
-            notificationAsync(NotificationFeedbackType.Warning);
-            try {
-              await deleteHabit(habit.id);
-              router.back();
-            } catch (err) {
-              showActionError("Unable to delete habit", err);
-            }
-          },
-          style: "destructive",
-          text: "Delete",
-        },
-      ]
-    );
-  };
+  const { checkedToday, history, stats } = habit;
 
   return (
     <>
@@ -92,26 +102,24 @@ export default function HabitDetailsScreen() {
       />
       <Host style={{ flex: 1 }}>
         <List>
-          <ListItem supportingText={`${streaks.currentStreak}`}>
+          <ListItem supportingText={`${stats.currentStreak}`}>
             Current streak
           </ListItem>
-          <ListItem supportingText={`${streaks.bestStreak}`}>
+          <ListItem supportingText={`${stats.bestStreak}`}>
             Highest streak
           </ListItem>
-          <ListItem supportingText={`${totalCheckins}`}>
+          <ListItem supportingText={`${stats.totalCheckins}`}>
             Total check-ins
           </ListItem>
-          <ListItem supportingText={lastCheckin ?? "Never"}>
+          <ListItem supportingText={stats.lastCheckin ?? "Never"}>
             Last check-in
           </ListItem>
-          <ListItem
-            supportingText={<HabitStreakHistory weeks={historyWeeks} />}
-          >
+          <ListItem supportingText={<HabitStreakHistory weeks={history} />}>
             History
           </ListItem>
           <ListItem>
             <Button
-              label={isCompletedToday ? "Mark Incomplete" : "Mark Complete"}
+              label={checkedToday ? "Mark Incomplete" : "Mark Complete"}
               onPress={handleToggle}
               variant="filled"
             />
@@ -119,8 +127,8 @@ export default function HabitDetailsScreen() {
           <ListItem
             leading={
               <Icon
-                color={isCompletedToday ? APP_ACCENT_COLOR : "#8b949e"}
-                name={isCompletedToday ? CHECK_ICON : CIRCLE_ICON}
+                color={checkedToday ? APP_ACCENT_COLOR : UNCHECKED_COLOR}
+                name={checkedToday ? CHECK_ICON : CIRCLE_ICON}
                 size={22}
               />
             }
@@ -133,12 +141,12 @@ export default function HabitDetailsScreen() {
             leading={
               <Icon color={APP_ACCENT_COLOR} name={EDIT_ICON} size={22} />
             }
-            onPress={() => router.push(`/habit/edit/${habit.id}`)}
+            onPress={handleEdit}
           >
             Edit habit
           </ListItem>
           <ListItem
-            leading={<Icon color="#ef4444" name={DELETE_ICON} size={22} />}
+            leading={<Icon color={DANGER_COLOR} name={DELETE_ICON} size={22} />}
             onPress={handleDelete}
           >
             Delete habit

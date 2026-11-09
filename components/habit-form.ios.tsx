@@ -21,7 +21,6 @@ import {
 } from "@expo/ui/swift-ui/modifiers";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, PlatformColor } from "react-native";
-import { APP_ACCENT_COLOR } from "./app-colors";
 import {
   getHabitCategory,
   HABIT_CATEGORIES,
@@ -29,7 +28,8 @@ import {
   type HabitCategoryGroup,
   type HabitCategoryId,
   resolveHabitCategoryId,
-} from "./habit-categories";
+} from "../shared/habit-categories";
+import { APP_ACCENT_COLOR } from "./app-colors";
 
 export interface HabitFormInput {
   categoryId: HabitCategoryId;
@@ -78,6 +78,38 @@ function NativeTextInput({
   );
 }
 
+function CategoryOption({
+  categoryId,
+  isSelected,
+  label,
+  onSelect,
+}: {
+  categoryId: HabitCategoryId;
+  isSelected: boolean;
+  label: string;
+  onSelect: (categoryId: HabitCategoryId) => void;
+}) {
+  const handlePress = useCallback(
+    () => onSelect(categoryId),
+    [categoryId, onSelect]
+  );
+  return (
+    <Button modifiers={[tint(PlatformColor("label"))]} onPress={handlePress}>
+      <HStack>
+        <Text>{label}</Text>
+        <Spacer />
+        {isSelected ? (
+          <Image
+            modifiers={[tint(APP_ACCENT_COLOR)]}
+            size={16}
+            systemName="checkmark"
+          />
+        ) : null}
+      </HStack>
+    </Button>
+  );
+}
+
 export function HabitForm({
   autoFocusName,
   initialName,
@@ -109,18 +141,23 @@ export function HabitForm({
           );
 
     return HABIT_CATEGORY_GROUP_ORDER.map((group) => ({
-      group,
       categories: filteredCategories.filter(
         (category) => category.group === group
       ),
+      group,
     })).filter((section) => section.categories.length > 0);
   }, [searchQuery]);
 
-  const openCategorySheet = () => {
+  const openCategorySheet = useCallback(() => {
     setSearchQuery("");
     setSearchInputKey((value) => value + 1);
     setIsCategorySheetOpen(true);
-  };
+  }, []);
+
+  const selectCategory = useCallback((categoryId: HabitCategoryId) => {
+    setSelectedCategoryId(categoryId);
+    setIsCategorySheetOpen(false);
+  }, []);
 
   const handleSubmit = useCallback(async () => {
     if (isSaving) {
@@ -128,7 +165,7 @@ export function HabitForm({
     }
     setIsSaving(true);
     try {
-      await onSubmit({ name, categoryId: selectedCategoryId });
+      await onSubmit({ categoryId: selectedCategoryId, name });
     } catch (error) {
       Alert.alert(
         submitErrorTitle,
@@ -169,8 +206,8 @@ export function HabitForm({
               <Text
                 modifiers={[
                   foregroundStyle({
-                    type: "hierarchical",
                     style: "secondary",
+                    type: "hierarchical",
                   }),
                 ]}
               >
@@ -211,31 +248,15 @@ export function HabitForm({
             ) : (
               groupedCategories.map((section) => (
                 <Section key={section.group} title={section.group}>
-                  {section.categories.map((category) => {
-                    const isSelected = category.id === selectedCategoryId;
-                    return (
-                      <Button
-                        key={category.id}
-                        modifiers={[tint(PlatformColor("label"))]}
-                        onPress={() => {
-                          setSelectedCategoryId(category.id);
-                          setIsCategorySheetOpen(false);
-                        }}
-                      >
-                        <HStack>
-                          <Text>{category.label}</Text>
-                          <Spacer />
-                          {isSelected ? (
-                            <Image
-                              modifiers={[tint(APP_ACCENT_COLOR)]}
-                              size={16}
-                              systemName="checkmark"
-                            />
-                          ) : null}
-                        </HStack>
-                      </Button>
-                    );
-                  })}
+                  {section.categories.map((category) => (
+                    <CategoryOption
+                      categoryId={category.id}
+                      isSelected={category.id === selectedCategoryId}
+                      key={category.id}
+                      label={category.label}
+                      onSelect={selectCategory}
+                    />
+                  ))}
                 </Section>
               ))
             )}

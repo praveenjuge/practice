@@ -41,7 +41,7 @@ export function InsetSection({
       >
         {rows.map((child, index) => {
           const key =
-            isValidElement(child) && child.key != null
+            isValidElement(child) && child.key !== null
               ? child.key
               : `row-${index}`;
           return (
