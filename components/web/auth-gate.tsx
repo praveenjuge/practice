@@ -1,6 +1,7 @@
 import { Column, Host, Text } from "@expo/ui";
 import { useCallback, useState } from "react";
 import { StyleSheet, View } from "react-native";
+import { HOST_THEME } from "../app-colors";
 import { signIn } from "../session";
 import { DANGER_COLOR, FONT_SUBHEAD, usePalette } from "./palette";
 import { AppButton } from "./pointer";
@@ -34,7 +35,7 @@ export function AuthGate() {
           },
         ]}
       >
-        <Host matchContents>
+        <Host matchContents {...HOST_THEME}>
           <Column alignment="center" spacing={18}>
             <Text
               textStyle={{

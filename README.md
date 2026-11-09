@@ -22,13 +22,15 @@ check-ins, streaks, search, and habit history.
 
 ## Local development
 
-Install dependencies:
+Everything runs locally, with no cloud accounts or secrets: the API runs in
+`wrangler dev` with a local D1 database, and sign-in goes through the
+[WorkOS emulator](https://github.com/workos/emulate) instead of real WorkOS.
+
+Install dependencies and create the local settings files:
 
 ```sh
 bun install
 ```
-
-Create the local settings files:
 
 ```sh
 cp .env.example .env.local
@@ -38,11 +40,15 @@ cp .env.example .env.local
 cp .dev.vars.example .dev.vars
 ```
 
-Put the WorkOS **Staging** API key in `.dev.vars`. Forks should use their own
-WorkOS, Cloudflare, and EAS projects.
+Start the WorkOS emulator (port 4100). Sign in as any user seeded in
+`workos-emulate.config.yaml`, such as `alex@example.com`:
 
-Run the API (applies D1 migrations locally, then starts `wrangler dev` on
-port 8787):
+```sh
+bun run dev:auth
+```
+
+Start the API (applies D1 migrations locally, then serves the API and the web
+build on port 8787):
 
 ```sh
 bun run dev:api
@@ -58,25 +64,29 @@ bun run ios
 bun run android
 ```
 
-The Android emulator reaches the local API through `adb reverse tcp:8787 tcp:8787`.
-
-The web app needs the API on the same origin, so build it and serve both from
-the Worker at http://localhost:8787:
+The Android emulator reaches the local services through `adb reverse`:
 
 ```sh
-bun run dev:web
+adb reverse tcp:8787 tcp:8787 && adb reverse tcp:4100 tcp:4100
 ```
 
-Run the API tests:
+The web app is served by the Worker at http://localhost:8787. Rebuild it after
+web changes with `bun run dev:web`.
+
+Run the API tests (Workers runtime, local D1, no network):
 
 ```sh
 bun run test:api
 ```
 
+To test against the real WorkOS Staging environment instead of the emulator,
+follow the comments in `.dev.vars.example`.
+
 ## Deploying
 
-`bun run deploy` builds the web app, applies D1 migrations to production, and
-deploys the Worker. The production WorkOS API key is a Worker secret:
+Every push to `main` deploys automatically through Cloudflare Workers Builds
+(D1 migrations, web build, then `wrangler deploy`). Other branches get preview
+versions. `bun run deploy` does the same by hand. The production WorkOS API key is a Worker secret:
 
 ```sh
 bunx wrangler secret put WORKOS_API_KEY

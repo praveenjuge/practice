@@ -1,5 +1,13 @@
 # Local Worker settings for `wrangler dev`. Copy to .dev.vars.
-# Use the WorkOS *Staging* environment of the Practice project.
 APP_ORIGIN=http://localhost:8787
-WORKOS_CLIENT_ID=client_01M706HR8ZF0PNJYD6BQ1NQNZT
-WORKOS_API_KEY=
+
+# Default: the local WorkOS emulator (`bun run dev:auth`). No real secrets;
+# sign in as any user seeded in workos-emulate.config.yaml.
+WORKOS_API_URL=http://localhost:4100
+WORKOS_API_KEY=sk_test_default
+WORKOS_CLIENT_ID=client_local_practice
+
+# To test against the real WorkOS Staging environment instead, remove
+# WORKOS_API_URL and use the Practice project's Staging values:
+# WORKOS_CLIENT_ID=client_01M706HR8ZF0PNJYD6BQ1NQNZT
+# WORKOS_API_KEY=<Staging API key from the WorkOS dashboard>

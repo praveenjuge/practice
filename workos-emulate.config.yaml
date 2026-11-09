@@ -1,0 +1,12 @@
+# Seed data for the local WorkOS emulator (`bun run dev:auth`). Local only:
+# the emulator keeps everything in memory and performs no real authentication.
+# Pick one of these users on its login page to sign in.
+users:
+  - email: alex@example.com
+    first_name: Alex
+    last_name: Tester
+    email_verified: true
+  - email: sam@example.com
+    first_name: Sam
+    last_name: Tester
+    email_verified: true

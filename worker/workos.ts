@@ -6,12 +6,27 @@ import { type AppEnv, apiError, type Bindings } from "./env";
 // between requests.
 let cached: { client: WorkOS; key: string } | undefined;
 
+// WORKOS_API_URL points the SDK at the local WorkOS emulator; production
+// leaves it unset and talks to api.workos.com.
+const hostOptions = (apiUrl: string | undefined) => {
+  if (!apiUrl) {
+    return {};
+  }
+  const url = new URL(apiUrl);
+  return {
+    apiHostname: url.hostname,
+    https: url.protocol === "https:",
+    port: url.port ? Number(url.port) : undefined,
+  };
+};
+
 export const getWorkOS = (env: Bindings): WorkOS => {
-  const key = `${env.WORKOS_CLIENT_ID}:${env.WORKOS_API_KEY}`;
+  const key = `${env.WORKOS_CLIENT_ID}:${env.WORKOS_API_KEY}:${env.WORKOS_API_URL ?? ""}`;
   if (cached?.key !== key) {
     cached = {
       client: new WorkOS(env.WORKOS_API_KEY, {
         clientId: env.WORKOS_CLIENT_ID,
+        ...hostOptions(env.WORKOS_API_URL),
       }),
       key,
     };

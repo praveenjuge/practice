@@ -2,7 +2,7 @@ import { Host, HStack, List, Spacer, Text } from "@expo/ui/swift-ui";
 import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { APP_ACCENT_COLOR } from "../app-colors";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../app-colors";
 import { HabitForm, type HabitFormInput } from "../habit-form";
 import { useHabits } from "../habits-store";
 
@@ -44,7 +44,7 @@ export default function EditHabitScreen() {
     return (
       <>
         <Stack.Screen options={{ title: "Edit Habit" }} />
-        <Host style={{ flex: 1 }}>
+        <Host {...HOST_THEME} style={{ flex: 1 }}>
           <List>
             <HStack>
               <Text>Not found</Text>

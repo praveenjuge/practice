@@ -3,7 +3,7 @@ import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { Alert } from "react-native";
-import { APP_ACCENT_COLOR } from "../app-colors";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../app-colors";
 import { HabitStreakHistory } from "../habit-streak-history";
 import { useHabitDetail, useHabits } from "../habits-store";
 import {
@@ -82,7 +82,7 @@ export default function HabitDetailsScreen() {
     return (
       <>
         <Stack.Screen options={{ title: "Habit" }} />
-        <Host style={{ flex: 1 }}>
+        <Host {...HOST_THEME} style={{ flex: 1 }}>
           <List>
             <ListItem supportingText="This habit no longer exists.">
               Not found
@@ -100,7 +100,7 @@ export default function HabitDetailsScreen() {
       <Stack.Screen
         options={{ headerBackButtonDisplayMode: "minimal", title: habit.name }}
       />
-      <Host style={{ flex: 1 }}>
+      <Host {...HOST_THEME} style={{ flex: 1 }}>
         <List>
           <ListItem supportingText={`${stats.currentStreak}`}>
             Current streak

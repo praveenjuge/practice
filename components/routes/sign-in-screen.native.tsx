@@ -2,6 +2,7 @@ import { Button, Column, Host, Text } from "@expo/ui";
 import { Stack } from "expo-router";
 import { useCallback, useState } from "react";
 import { Alert, Platform, PlatformColor, StyleSheet, View } from "react-native";
+import { HOST_THEME } from "../app-colors";
 import { signIn } from "../session";
 
 const SECONDARY_TEXT = PlatformColor(
@@ -26,7 +27,7 @@ export default function SignInScreen() {
   return (
     <View style={styles.root}>
       <Stack.Screen options={{ headerShown: false, title: "Sign in" }} />
-      <Host matchContents>
+      <Host matchContents {...HOST_THEME}>
         <Column alignment="center" spacing={12}>
           <Text textStyle={{ fontSize: 34, fontWeight: "700" }}>Practice</Text>
           <Text

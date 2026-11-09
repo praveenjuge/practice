@@ -1,6 +1,7 @@
 import { Host, List, ListItem } from "@expo/ui";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo } from "react";
+import { HOST_THEME } from "../app-colors";
 import { HabitForm, type HabitFormInput } from "../habit-form";
 import { useHabits } from "../habits-store";
 
@@ -28,7 +29,7 @@ export default function EditHabitScreen() {
     return (
       <>
         <Stack.Screen options={{ title: "Edit Habit" }} />
-        <Host style={{ flex: 1 }}>
+        <Host {...HOST_THEME} style={{ flex: 1 }}>
           <List>
             <ListItem supportingText="This habit no longer exists.">
               Not found

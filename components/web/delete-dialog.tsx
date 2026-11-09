@@ -1,5 +1,6 @@
 import { Column, Host, Row, Spacer, Text } from "@expo/ui";
 import { Modal, StyleSheet, View } from "react-native";
+import { HOST_THEME } from "../app-colors";
 import { FONT_SUBHEAD, usePalette } from "./palette";
 import { AppButton } from "./pointer";
 
@@ -30,7 +31,7 @@ export function DeleteDialog({
             },
           ]}
         >
-          <Host matchContents>
+          <Host matchContents {...HOST_THEME}>
             <Column spacing={14}>
               <Text
                 textStyle={{

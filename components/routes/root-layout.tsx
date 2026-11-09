@@ -1,7 +1,7 @@
 import { Column, Host, Text } from "@expo/ui";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { APP_ACCENT_COLOR } from "../app-colors";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../app-colors";
 import { HabitsProvider } from "../habits-store";
 import { restoreSession, useSession } from "../session";
 import {
@@ -38,6 +38,7 @@ function ThemedLayout() {
   if (session.status === "loading") {
     return (
       <Host
+        {...HOST_THEME}
         style={{
           alignItems: "center",
           backgroundColor: palette.page,

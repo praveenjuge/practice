@@ -29,7 +29,7 @@ import {
   type HabitCategoryId,
   resolveHabitCategoryId,
 } from "../shared/habit-categories";
-import { APP_ACCENT_COLOR } from "./app-colors";
+import { APP_ACCENT_COLOR, HOST_THEME } from "./app-colors";
 
 export interface HabitFormInput {
   categoryId: HabitCategoryId;
@@ -188,7 +188,7 @@ export function HabitForm({
   }, [handleSubmit, onSubmitReady]);
 
   return (
-    <Host style={{ flex: 1 }}>
+    <Host {...HOST_THEME} style={{ flex: 1 }}>
       <List>
         <Section title="Habit">
           <NativeTextInput

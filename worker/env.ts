@@ -7,6 +7,8 @@ export interface Bindings {
   APP_ORIGIN: string;
   DB: D1Database;
   WORKOS_API_KEY: string;
+  /** Only for local runs against the WorkOS emulator, e.g. http://localhost:4100. */
+  WORKOS_API_URL?: string;
   WORKOS_CLIENT_ID: string;
 }
 

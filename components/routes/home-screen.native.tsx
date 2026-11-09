@@ -8,7 +8,7 @@ import {
   ADD_TOOLBAR_ICON,
   useAccountActions,
 } from "../account-actions";
-import { APP_ACCENT_COLOR } from "../app-colors";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../app-colors";
 import { type Habit, useHabits } from "../habits-store";
 import { ADD_ICON, CHECK_ICON, CIRCLE_ICON } from "../native-icons";
 import { WeeklyStreakBoxes } from "../weekly-streak-boxes";
@@ -118,7 +118,7 @@ export default function HomeScreen() {
           </Stack.Toolbar.MenuAction>
         </Stack.Toolbar.Menu>
       </Stack.Toolbar>
-      <Host style={{ flex: 1 }}>
+      <Host {...HOST_THEME} style={{ flex: 1 }}>
         <List>
           {isLoaded && filteredHabits.length === 0 ? (
             <ListItem

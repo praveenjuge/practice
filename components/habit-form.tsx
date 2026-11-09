@@ -19,6 +19,7 @@ import {
   type HabitCategoryId,
   resolveHabitCategoryId,
 } from "../shared/habit-categories";
+import { HOST_THEME } from "./app-colors";
 
 export interface HabitFormInput {
   categoryId: HabitCategoryId;
@@ -184,7 +185,7 @@ export function HabitForm({
   }, [handleSubmit, onSubmitReady]);
 
   return (
-    <Host style={{ flex: 1 }}>
+    <Host {...HOST_THEME} style={{ flex: 1 }}>
       <FieldGroup>
         <FieldGroup.Section title="Habit">
           <NativeTextInput
@@ -217,7 +218,7 @@ export function HabitForm({
         showDragIndicator
         snapPoints={["half", "full"]}
       >
-        <Host style={{ flex: 1 }}>
+        <Host {...HOST_THEME} style={{ flex: 1 }}>
           <FieldGroup>
             <FieldGroup.Section title="Select Category">
               <NativeTextInput

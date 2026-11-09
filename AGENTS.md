@@ -171,4 +171,6 @@ The backend is a Cloudflare Worker (`worker/`, Hono) with D1 (`migrations/`) and
 - Keep logic on the server: validation, streaks and history are computed in `worker/`; the apps render what the API returns.
 - Schema changes go in a new numbered file in `migrations/`; never edit an applied migration.
 - Run `bun run test:api` after changing `worker/`. Tests run in the Workers runtime against a local D1.
-- WorkOS project: "Practice" (Staging for local dev via `.dev.vars`, Production for the deployed Worker).
+- Local runs need no secrets: `bun run dev:auth` (WorkOS emulator, seeded users in `workos-emulate.config.yaml`) + `bun run dev:api`. See README "Local development".
+- WorkOS project "Practice": Staging for optional real-auth testing, Production for the deployed Worker.
+- Pushes to `main` deploy through Cloudflare Workers Builds.
