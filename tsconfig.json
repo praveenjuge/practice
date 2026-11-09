@@ -3,10 +3,5 @@
   "compilerOptions": {
     "strict": true
   },
-  "exclude": [
-    "node_modules",
-    "worker/test",
-    "worker/vitest.config.mts",
-    "convex"
-  ]
+  "exclude": ["node_modules", "worker/test", "worker/vitest.config.mts"]
 }
