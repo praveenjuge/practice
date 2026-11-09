@@ -1,29 +1,11 @@
 import { Host, List, ListItem } from "@expo/ui";
-import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useMemo } from "react";
-import { HabitForm, type HabitFormInput } from "../../components/habit-form";
+import { Stack } from "expo-router";
+import { HabitForm } from "../../components/habit-form";
 import { HOST_THEME } from "../../lib/app-colors";
-import { useHabits } from "../../lib/habits-store";
+import { useEditHabit } from "../../lib/screen-hooks";
 
 export default function EditHabitScreen() {
-  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const { habits, updateHabit } = useHabits();
-  const habitId = Array.isArray(id) ? id[0] : id;
-  const habit = useMemo(
-    () => habits.find((item) => item.id === habitId),
-    [habits, habitId]
-  );
-
-  const handleSubmit = useCallback(
-    async (input: HabitFormInput) => {
-      if (!habit) {
-        throw new Error("Habit not found.");
-      }
-      await updateHabit(habit.id, input);
-      router.back();
-    },
-    [habit, updateHabit]
-  );
+  const { habit, handleSubmit } = useEditHabit();
 
   if (!habit) {
     return (

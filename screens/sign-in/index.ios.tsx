@@ -8,9 +8,8 @@ import {
   multilineTextAlignment,
 } from "@expo/ui/swift-ui/modifiers";
 import { Stack } from "expo-router";
-import { type ComponentProps, useCallback, useState } from "react";
+import type { ComponentProps } from "react";
 import {
-  Alert,
   PlatformColor,
   Image as RNImage,
   StyleSheet,
@@ -18,7 +17,7 @@ import {
 } from "react-native";
 import appIcon from "../../assets/icon.png";
 import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
-import { signIn } from "../../lib/session";
+import { useSignIn } from "../../lib/screen-hooks";
 import {
   WELCOME_FEATURES,
   WELCOME_SUBTITLE,
@@ -42,19 +41,7 @@ const FEATURE_SYMBOLS: Record<WelcomeFeatureKey, SymbolName> = {
 const secondary = foregroundStyle({ style: "secondary", type: "hierarchical" });
 
 export default function SignInScreen() {
-  const [busy, setBusy] = useState(false);
-
-  const handleSignIn = useCallback(() => {
-    setBusy(true);
-    signIn()
-      .catch((error: unknown) => {
-        Alert.alert(
-          "Couldn't sign in",
-          error instanceof Error ? error.message : "Please try again."
-        );
-      })
-      .finally(() => setBusy(false));
-  }, []);
+  const { busy, handleSignIn } = useSignIn();
 
   return (
     <View style={styles.root}>

@@ -1,15 +1,13 @@
 import { Text } from "@expo/ui";
-import { useLocalSearchParams } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { HabitDetailPane } from "../../components/web/habit-detail-pane";
 import { HabitListPane } from "../../components/web/habit-list-pane";
 import { FONT_SUBHEAD, usePalette } from "../../components/web/palette";
 import { Shell, useIsWide } from "../../components/web/shell";
-import { useHabits } from "../../lib/habits-store";
+import { useHabitIdParam, useHabits } from "../../lib/habits-store";
 
 export default function HabitDetailsScreen() {
-  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const habitId = Array.isArray(id) ? id[0] : id;
+  const habitId = useHabitIdParam();
   const { habits, isLoaded } = useHabits();
   const isWide = useIsWide();
   const palette = usePalette();

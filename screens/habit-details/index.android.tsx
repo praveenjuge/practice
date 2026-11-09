@@ -1,78 +1,29 @@
 import { Button, Host, Icon, List, ListItem } from "@expo/ui";
-import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
-import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback } from "react";
-import { Alert } from "react-native";
+import { Stack } from "expo-router";
 import { HabitStreakHistory } from "../../components/habit-streak-history";
 import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
-import { useHabitDetail, useHabits } from "../../lib/habits-store";
+import {
+  useHabitDetail,
+  useHabitIdParam,
+  useHabits,
+} from "../../lib/habits-store";
 import {
   CHECK_ICON,
   CIRCLE_ICON,
   DELETE_ICON,
   EDIT_ICON,
 } from "../../lib/native-icons";
+import { useHabitDetailActions } from "../../lib/screen-hooks";
 
 const UNCHECKED_COLOR = "#8b949e";
 const DANGER_COLOR = "#ef4444";
 
-const showActionError = (title: string, error: unknown) => {
-  Alert.alert(
-    title,
-    error instanceof Error ? error.message : "Please try again."
-  );
-};
-
 export default function HabitDetailsScreen() {
-  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const { deleteHabit, today, toggleCheckInToday } = useHabits();
-  const habitId = Array.isArray(id) ? id[0] : id;
-  const result = useHabitDetail(habitId);
+  const { today } = useHabits();
+  const result = useHabitDetail(useHabitIdParam());
   const habit = result.status === "ready" ? result.detail : undefined;
-
-  const handleEdit = useCallback(() => {
-    if (habit) {
-      router.push(`/habit/edit/${habit.id}`);
-    }
-  }, [habit]);
-
-  const handleToggle = useCallback(() => {
-    if (!habit) {
-      return;
-    }
-    if (!habit.checkedToday) {
-      notificationAsync(NotificationFeedbackType.Success);
-    }
-    toggleCheckInToday(habit.id).catch((error: unknown) => {
-      showActionError("Unable to update habit", error);
-    });
-  }, [habit, toggleCheckInToday]);
-
-  const handleDelete = useCallback(() => {
-    if (!habit) {
-      return;
-    }
-    Alert.alert(
-      "Delete habit?",
-      "This removes the habit and its streak history.",
-      [
-        { style: "cancel", text: "Cancel" },
-        {
-          onPress: async () => {
-            notificationAsync(NotificationFeedbackType.Warning);
-            try {
-              await deleteHabit(habit.id);
-              router.back();
-            } catch (error) {
-              showActionError("Unable to delete habit", error);
-            }
-          },
-          style: "destructive",
-          text: "Delete",
-        },
-      ]
-    );
-  }, [deleteHabit, habit]);
+  const { handleDelete, handleEdit, handleToggle } =
+    useHabitDetailActions(habit);
 
   if (result.status === "loading") {
     return <Stack.Screen options={{ title: "" }} />;

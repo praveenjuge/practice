@@ -34,7 +34,7 @@ const apiUrl = isWeb
 const isCompletingWebSignIn =
   isWeb && maybeCompleteAuthSession().type === "success";
 
-export class ApiError extends Error {
+class ApiError extends Error {
   readonly status: number;
 
   constructor(message: string, status: number) {

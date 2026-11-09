@@ -1,44 +1,18 @@
 import { Host, HStack, List, Spacer, Text } from "@expo/ui/swift-ui";
 import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
-import { router, Stack, useLocalSearchParams } from "expo-router";
-import { useCallback, useMemo, useState } from "react";
-import { HabitForm, type HabitFormInput } from "../../components/habit-form";
+import { Stack } from "expo-router";
+import { HabitForm } from "../../components/habit-form";
 import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
-import { useHabits } from "../../lib/habits-store";
+import { useEditHabit, useHeaderSubmit } from "../../lib/screen-hooks";
 
 export default function EditHabitScreen() {
-  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const { habits, updateHabit } = useHabits();
-  const [isSaving, setIsSaving] = useState(false);
-  const [submitFromHeader, setSubmitFromHeader] = useState<(() => void) | null>(
-    null
-  );
-  const habitId = Array.isArray(id) ? id[0] : id;
-  const habit = useMemo(
-    () => habits.find((item) => item.id === habitId),
-    [habits, habitId]
-  );
-
-  const handleHeaderSubmit = useCallback(() => {
-    submitFromHeader?.();
-  }, [submitFromHeader]);
-
-  const handleSubmitReady = useCallback((submit: (() => void) | null) => {
-    setSubmitFromHeader((previousSubmit) =>
-      previousSubmit === submit ? previousSubmit : submit
-    );
-  }, []);
-
-  const handleSubmit = useCallback(
-    async (input: HabitFormInput) => {
-      if (!habit) {
-        throw new Error("Habit not found.");
-      }
-      await updateHabit(habit.id, input);
-      router.back();
-    },
-    [habit, updateHabit]
-  );
+  const { habit, handleSubmit } = useEditHabit();
+  const {
+    handleHeaderSubmit,
+    handleSubmitReady,
+    isHeaderDisabled,
+    setIsSaving,
+  } = useHeaderSubmit();
 
   if (!habit) {
     return (
@@ -65,8 +39,6 @@ export default function EditHabitScreen() {
       </>
     );
   }
-
-  const isHeaderDisabled = !submitFromHeader || isSaving;
 
   return (
     <>

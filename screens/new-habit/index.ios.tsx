@@ -1,35 +1,16 @@
-import { router, Stack } from "expo-router";
-import { useCallback, useState } from "react";
-import { HabitForm, type HabitFormInput } from "../../components/habit-form";
+import { Stack } from "expo-router";
+import { HabitForm } from "../../components/habit-form";
 import { APP_ACCENT_COLOR } from "../../lib/app-colors";
-import { useHabits } from "../../lib/habits-store";
+import { useAddHabit, useHeaderSubmit } from "../../lib/screen-hooks";
 
 export default function NewHabitScreen() {
-  const { addHabit } = useHabits();
-  const [isSaving, setIsSaving] = useState(false);
-  const [submitFromHeader, setSubmitFromHeader] = useState<(() => void) | null>(
-    null
-  );
-
-  const handleSubmit = useCallback(
-    async (input: HabitFormInput) => {
-      await addHabit(input);
-      router.back();
-    },
-    [addHabit]
-  );
-
-  const handleHeaderSubmit = useCallback(() => {
-    submitFromHeader?.();
-  }, [submitFromHeader]);
-
-  const handleSubmitReady = useCallback((submit: (() => void) | null) => {
-    setSubmitFromHeader((previousSubmit) =>
-      previousSubmit === submit ? previousSubmit : submit
-    );
-  }, []);
-
-  const isHeaderDisabled = !submitFromHeader || isSaving;
+  const handleSubmit = useAddHabit();
+  const {
+    handleHeaderSubmit,
+    handleSubmitReady,
+    isHeaderDisabled,
+    setIsSaving,
+  } = useHeaderSubmit();
 
   return (
     <>

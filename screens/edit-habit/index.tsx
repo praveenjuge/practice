@@ -1,10 +1,9 @@
-import { useLocalSearchParams } from "expo-router";
 import { HabitFormScreen } from "../../components/web/habit-form-screen";
 import { Shell } from "../../components/web/shell";
+import { useHabitIdParam } from "../../lib/habits-store";
 
 export default function EditHabitScreen() {
-  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
-  const habitId = Array.isArray(id) ? id[0] : id;
+  const habitId = useHabitIdParam();
   return (
     <Shell title="Edit Habit">
       <HabitFormScreen habitId={habitId} />

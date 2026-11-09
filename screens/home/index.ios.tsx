@@ -8,10 +8,8 @@ import {
   layoutPriority,
   shapes,
 } from "@expo/ui/swift-ui/modifiers";
-import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack } from "expo-router";
-import { memo, useCallback, useState } from "react";
-import { Alert } from "react-native";
+import { memo, useCallback } from "react";
 import { WeeklyStreakBoxes } from "../../components/weekly-streak-boxes";
 import {
   ACCOUNT_MENU_ICON,
@@ -21,6 +19,7 @@ import {
 import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
 import { type Habit, useHabits } from "../../lib/habits-store";
 import { ADD_ICON, CHECK_ICON, CIRCLE_ICON } from "../../lib/native-icons";
+import { useHabitSearch, useToggleHabit } from "../../lib/screen-hooks";
 
 const UNCHECKED_COLOR = "#c7c7cc";
 const openNewHabit = () => router.push("/habit/new");
@@ -79,36 +78,11 @@ const HabitRow = memo(function HabitRowContent({
 });
 
 export default function HomeScreen() {
-  const { habits, isLoaded, toggleCheckInToday } = useHabits();
+  const { habits, isLoaded } = useHabits();
   const { confirmDeleteAccount, confirmSignOut, email } = useAccountActions();
-  const [searchQuery, setSearchQuery] = useState("");
-  const trimmedSearchQuery = searchQuery.trim();
-  const filteredHabits = trimmedSearchQuery
-    ? habits.filter((habit) =>
-        habit.name.toLowerCase().includes(trimmedSearchQuery.toLowerCase())
-      )
-    : habits;
-
-  const handleToggle = useCallback(
-    (habit: Habit) => {
-      if (!habit.checkedToday) {
-        notificationAsync(NotificationFeedbackType.Success);
-      }
-      toggleCheckInToday(habit.id).catch((error: unknown) => {
-        Alert.alert(
-          "Unable to update habit",
-          error instanceof Error ? error.message : "Please try again."
-        );
-      });
-    },
-    [toggleCheckInToday]
-  );
-
-  const handleSearch = useCallback(
-    (event: { nativeEvent: { text: string } }) =>
-      setSearchQuery(event.nativeEvent.text),
-    []
-  );
+  const { filteredHabits, handleSearch, trimmedSearchQuery } =
+    useHabitSearch(habits);
+  const handleToggle = useToggleHabit();
 
   return (
     <>

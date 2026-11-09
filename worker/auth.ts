@@ -7,7 +7,7 @@ import { type AppEnv, apiError } from "./env";
 import { validate } from "./validate";
 import { getWorkOS, isWorkOSClientError, requireUser } from "./workos";
 
-export const NATIVE_REDIRECT_URI = "practice://callback";
+const NATIVE_REDIRECT_URI = "practice://callback";
 const REFRESH_COOKIE = "__Host-practice_refresh";
 const REFRESH_COOKIE_MAX_AGE_SECONDS = 60 * 60 * 24 * 30;
 // RFC 7636: verifiers are 43-128 characters; an S256 challenge is 43.

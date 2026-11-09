@@ -1,18 +1,9 @@
-import { router, Stack } from "expo-router";
-import { useCallback } from "react";
-import { HabitForm, type HabitFormInput } from "../../components/habit-form";
-import { useHabits } from "../../lib/habits-store";
+import { Stack } from "expo-router";
+import { HabitForm } from "../../components/habit-form";
+import { useAddHabit } from "../../lib/screen-hooks";
 
 export default function NewHabitScreen() {
-  const { addHabit } = useHabits();
-
-  const handleSubmit = useCallback(
-    async (input: HabitFormInput) => {
-      await addHabit(input);
-      router.back();
-    },
-    [addHabit]
-  );
+  const handleSubmit = useAddHabit();
 
   return (
     <>

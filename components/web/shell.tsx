@@ -7,7 +7,7 @@ import { DeleteDialog } from "./delete-dialog";
 import { DANGER_COLOR, usePalette } from "./palette";
 import { AppButton, HoverPressable } from "./pointer";
 
-export const WIDE_BREAKPOINT = 900;
+const WIDE_BREAKPOINT = 900;
 
 const goHome = () => router.replace("/");
 

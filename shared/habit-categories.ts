@@ -100,7 +100,7 @@ export type HabitCategory = (typeof CATEGORIES)[number];
 export type HabitCategoryId = HabitCategory["id"];
 export type HabitCategoryGroup = HabitCategory["group"];
 
-export const DEFAULT_HABIT_CATEGORY_ID: HabitCategoryId = "uncategorized";
+const DEFAULT_HABIT_CATEGORY_ID: HabitCategoryId = "uncategorized";
 
 const HABIT_CATEGORY_IDS = new Set<string>(
   HABIT_CATEGORIES.map((item) => item.id)

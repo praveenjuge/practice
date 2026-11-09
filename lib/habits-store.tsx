@@ -1,3 +1,4 @@
+import { useLocalSearchParams } from "expo-router";
 import type React from "react";
 import {
   createContext,
@@ -13,7 +14,6 @@ import { api, unwrap, useSession } from "./session";
 
 export type {
   Habit,
-  HabitDetail,
   HabitHistoryWeek,
   RecentDay,
 } from "../shared/api-types";
@@ -40,7 +40,7 @@ const HabitsContext = createContext<HabitsContextValue | null>(null);
 const pad2 = (value: number) => String(value).padStart(2, "0");
 
 // The user's local calendar day; the server computes streaks against it.
-export const getTodayString = (date = new Date()) =>
+const getTodayString = (date = new Date()) =>
   `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
 
 // Instant feedback while the toggle request is in flight.
@@ -182,6 +182,12 @@ export function useHabits() {
     throw new Error("useHabits must be used within HabitsProvider");
   }
   return context;
+}
+
+/** The `[id]` route param, for screens under /habit/[id]. */
+export function useHabitIdParam(): string | undefined {
+  const { id } = useLocalSearchParams<{ id?: string | string[] }>();
+  return Array.isArray(id) ? id[0] : id;
 }
 
 type DetailState =

@@ -4,11 +4,10 @@ import FireIcon from "@expo/material-symbols/local_fire_department.xml";
 import SyncIcon from "@expo/material-symbols/sync.xml";
 import { Button, Column, Host, Icon, Row, Text } from "@expo/ui";
 import { Stack } from "expo-router";
-import { useCallback, useState } from "react";
-import { Alert, Image, PlatformColor, StyleSheet, View } from "react-native";
+import { Image, PlatformColor, StyleSheet, View } from "react-native";
 import appIcon from "../../assets/icon.png";
 import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
-import { signIn } from "../../lib/session";
+import { useSignIn } from "../../lib/screen-hooks";
 import {
   WELCOME_FEATURES,
   WELCOME_SUBTITLE,
@@ -31,19 +30,7 @@ const FEATURE_ICONS: Record<WelcomeFeatureKey, number> = {
 };
 
 export default function SignInScreen() {
-  const [busy, setBusy] = useState(false);
-
-  const handleSignIn = useCallback(() => {
-    setBusy(true);
-    signIn()
-      .catch((error: unknown) => {
-        Alert.alert(
-          "Couldn't sign in",
-          error instanceof Error ? error.message : "Please try again."
-        );
-      })
-      .finally(() => setBusy(false));
-  }, []);
+  const { busy, handleSignIn } = useSignIn();
 
   return (
     <View style={styles.root}>
