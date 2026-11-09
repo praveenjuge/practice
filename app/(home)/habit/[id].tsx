@@ -1,4 +1,4 @@
-import HabitDetailsScreen from "../../../components/routes/habit-details-screen";
+import HabitDetailsScreen from "../../../screens/habit-details";
 
 export default function HabitDetailsRoute() {
   return <HabitDetailsScreen />;

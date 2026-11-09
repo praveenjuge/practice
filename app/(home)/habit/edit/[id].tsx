@@ -1,4 +1,4 @@
-import EditHabitScreen from "../../../../components/routes/edit-habit-screen";
+import EditHabitScreen from "../../../../screens/edit-habit";
 
 export default function EditHabitRoute() {
   return <EditHabitScreen />;

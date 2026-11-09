@@ -14,7 +14,7 @@
       "binding": "DB",
       "database_name": "practice",
       "database_id": "cace94aa-4196-4403-9155-94edad3c3c39",
-      "migrations_dir": "migrations"
+      "migrations_dir": "worker/migrations"
     }
   ],
   // Production values. Local dev overrides them in .dev.vars (staging WorkOS

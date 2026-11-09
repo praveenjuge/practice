@@ -1,8 +1,8 @@
 import { router, Stack } from "expo-router";
 import { useCallback, useState } from "react";
-import { APP_ACCENT_COLOR } from "../app-colors";
-import { HabitForm, type HabitFormInput } from "../habit-form";
-import { useHabits } from "../habits-store";
+import { HabitForm, type HabitFormInput } from "../../components/habit-form";
+import { APP_ACCENT_COLOR } from "../../lib/app-colors";
+import { useHabits } from "../../lib/habits-store";
 
 export default function NewHabitScreen() {
   const { addHabit } = useHabits();

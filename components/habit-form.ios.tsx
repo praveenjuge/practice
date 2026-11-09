@@ -29,6 +29,7 @@ import {
   useState,
 } from "react";
 import { Alert, PlatformColor } from "react-native";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../lib/app-colors";
 import {
   getHabitCategory,
   HABIT_CATEGORIES,
@@ -37,7 +38,6 @@ import {
   type HabitCategoryId,
   resolveHabitCategoryId,
 } from "../shared/habit-categories";
-import { APP_ACCENT_COLOR, HOST_THEME } from "./app-colors";
 
 export interface HabitFormInput {
   categoryId: HabitCategoryId;

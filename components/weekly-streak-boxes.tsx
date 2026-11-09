@@ -1,6 +1,6 @@
 import { Row, Spacer } from "@expo/ui";
-import { APP_ACCENT_COLOR } from "./app-colors";
-import type { RecentDay } from "./habits-store";
+import { APP_ACCENT_COLOR } from "../lib/app-colors";
+import type { RecentDay } from "../lib/habits-store";
 
 // Fits a phone row without scrolling; iOS shows all recent days in a
 // trailing-anchored scroll view instead (weekly-streak-boxes.ios.tsx).

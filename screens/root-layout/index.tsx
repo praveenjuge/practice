@@ -1,14 +1,14 @@
 import { Column, Host, Text } from "@expo/ui";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { APP_ACCENT_COLOR, HOST_THEME } from "../app-colors";
-import { HabitsProvider } from "../habits-store";
-import { restoreSession, useSession } from "../session";
+import { FONT_SUBHEAD, usePalette } from "../../components/web/palette";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
+import { HabitsProvider } from "../../lib/habits-store";
+import { restoreSession, useSession } from "../../lib/session";
 import {
   ThemePreferenceProvider,
   useThemePreference,
-} from "../theme-preference";
-import { FONT_SUBHEAD, usePalette } from "../web/palette";
+} from "../../lib/theme-preference";
 
 restoreSession();
 

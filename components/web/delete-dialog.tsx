@@ -1,6 +1,6 @@
 import { Column, Host, Row, Spacer, Text } from "@expo/ui";
 import { Modal, StyleSheet, View } from "react-native";
-import { HOST_THEME } from "../app-colors";
+import { HOST_THEME } from "../../lib/app-colors";
 import { FONT_SUBHEAD, usePalette } from "./palette";
 import { AppButton } from "./pointer";
 

@@ -1,21 +1,28 @@
 import { Host, Icon, List, ListItem } from "@expo/ui";
+import { Button, HStack, Text, VStack } from "@expo/ui/swift-ui";
+import {
+  buttonStyle,
+  contentShape,
+  foregroundStyle,
+  frame,
+  layoutPriority,
+  shapes,
+} from "@expo/ui/swift-ui/modifiers";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack } from "expo-router";
 import { memo, useCallback, useState } from "react";
 import { Alert } from "react-native";
+import { WeeklyStreakBoxes } from "../../components/weekly-streak-boxes";
 import {
   ACCOUNT_MENU_ICON,
   ADD_TOOLBAR_ICON,
   useAccountActions,
-} from "../account-actions";
-import { APP_ACCENT_COLOR, HOST_THEME } from "../app-colors";
-import { type Habit, useHabits } from "../habits-store";
-import { ADD_ICON, CHECK_ICON, CIRCLE_ICON } from "../native-icons";
-import { WeeklyStreakBoxes } from "../weekly-streak-boxes";
+} from "../../lib/account-actions";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
+import { type Habit, useHabits } from "../../lib/habits-store";
+import { ADD_ICON, CHECK_ICON, CIRCLE_ICON } from "../../lib/native-icons";
 
-// Cross-platform home screen (Android); iOS uses home-screen.ios.tsx.
-
-const UNCHECKED_COLOR = "#9aa0a6";
+const UNCHECKED_COLOR = "#c7c7cc";
 const openNewHabit = () => router.push("/habit/new");
 
 interface HabitRowProps {
@@ -28,6 +35,7 @@ const HabitRow = memo(function HabitRowContent({
   onToggle,
 }: HabitRowProps) {
   const { checkedToday } = habit;
+  const iconColor = checkedToday ? APP_ACCENT_COLOR : UNCHECKED_COLOR;
   const handleOpen = useCallback(
     () => router.push(`/habit/${habit.id}`),
     [habit.id]
@@ -35,23 +43,38 @@ const HabitRow = memo(function HabitRowContent({
   const handleToggle = useCallback(() => onToggle(habit), [habit, onToggle]);
 
   return (
-    <ListItem
-      leading={
+    <Button modifiers={[buttonStyle("plain")]} onPress={handleOpen}>
+      <HStack
+        alignment="center"
+        modifiers={[
+          contentShape(shapes.rectangle()),
+          frame({ maxWidth: Number.POSITIVE_INFINITY }),
+        ]}
+        spacing={12}
+      >
         <Icon
           accessibilityLabel={
             checkedToday ? "Mark incomplete" : "Mark complete"
           }
-          color={checkedToday ? APP_ACCENT_COLOR : UNCHECKED_COLOR}
+          color={iconColor}
+          modifiers={[foregroundStyle(iconColor)]}
           name={checkedToday ? CHECK_ICON : CIRCLE_ICON}
           onPress={handleToggle}
-          size={24}
+          size={22}
         />
-      }
-      onPress={handleOpen}
-      supportingText={<WeeklyStreakBoxes days={habit.recentDays} />}
-    >
-      {habit.name}
-    </ListItem>
+        <VStack
+          alignment="leading"
+          modifiers={[
+            frame({ maxWidth: Number.POSITIVE_INFINITY }),
+            layoutPriority(1),
+          ]}
+          spacing={2}
+        >
+          <Text>{habit.name}</Text>
+          <WeeklyStreakBoxes days={habit.recentDays} />
+        </VStack>
+      </HStack>
+    </Button>
   );
 });
 
@@ -92,6 +115,7 @@ export default function HomeScreen() {
       <Stack.Screen
         options={{
           headerSearchBarOptions: {
+            hideWhenScrolling: true,
             onChangeText: handleSearch,
             placeholder: "Search habits",
           },
@@ -100,30 +124,37 @@ export default function HomeScreen() {
         }}
       />
       <Stack.Toolbar placement="right">
-        <Stack.Toolbar.Button
-          accessibilityLabel="New habit"
-          icon={ADD_TOOLBAR_ICON}
-          onPress={openNewHabit}
-        />
         <Stack.Toolbar.Menu
           accessibilityLabel="Account"
           icon={ACCOUNT_MENU_ICON}
           title={email}
         >
-          <Stack.Toolbar.MenuAction onPress={confirmSignOut}>
+          <Stack.Toolbar.MenuAction
+            icon="rectangle.portrait.and.arrow.right"
+            onPress={confirmSignOut}
+          >
             Sign Out
           </Stack.Toolbar.MenuAction>
-          <Stack.Toolbar.MenuAction destructive onPress={confirmDeleteAccount}>
+          <Stack.Toolbar.MenuAction
+            destructive
+            icon="trash"
+            onPress={confirmDeleteAccount}
+          >
             Delete Account
           </Stack.Toolbar.MenuAction>
         </Stack.Toolbar.Menu>
+        <Stack.Toolbar.Button
+          accessibilityLabel="New habit"
+          icon={ADD_TOOLBAR_ICON}
+          onPress={openNewHabit}
+        />
       </Stack.Toolbar>
       <Host {...HOST_THEME} style={{ flex: 1 }}>
         <List>
           {isLoaded && filteredHabits.length === 0 ? (
             <ListItem
               leading={
-                <Icon color={APP_ACCENT_COLOR} name={ADD_ICON} size={24} />
+                <Icon color={APP_ACCENT_COLOR} name={ADD_ICON} size={22} />
               }
               onPress={openNewHabit}
               supportingText={

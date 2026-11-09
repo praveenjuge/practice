@@ -1,4 +1,4 @@
-import SignInScreen from "../../components/routes/sign-in-screen";
+import SignInScreen from "../../screens/sign-in";
 
 export default function SignInRoute() {
   return <SignInScreen />;

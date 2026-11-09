@@ -1,4 +1,4 @@
-import HomeScreen from "../../components/routes/home-screen";
+import HomeScreen from "../../screens/home";
 
 export default function HomeRoute() {
   return <HomeScreen />;

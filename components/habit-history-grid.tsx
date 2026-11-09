@@ -1,6 +1,6 @@
 import { Column, Row, Spacer, Text } from "@expo/ui";
-import { APP_ACCENT_COLOR } from "./app-colors";
-import type { HabitHistoryWeek } from "./habits-store";
+import { APP_ACCENT_COLOR } from "../lib/app-colors";
+import type { HabitHistoryWeek } from "../lib/habits-store";
 
 const BOX_WIDTH = 12;
 const BOX_HEIGHT = 12;

@@ -1,9 +1,9 @@
 import { Host, List, ListItem } from "@expo/ui";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo } from "react";
-import { HOST_THEME } from "../app-colors";
-import { HabitForm, type HabitFormInput } from "../habit-form";
-import { useHabits } from "../habits-store";
+import { HabitForm, type HabitFormInput } from "../../components/habit-form";
+import { HOST_THEME } from "../../lib/app-colors";
+import { useHabits } from "../../lib/habits-store";
 
 export default function EditHabitScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();

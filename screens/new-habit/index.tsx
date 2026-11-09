@@ -1,5 +1,5 @@
-import { HabitFormScreen } from "../web/habit-form-screen";
-import { Shell } from "../web/shell";
+import { HabitFormScreen } from "../../components/web/habit-form-screen";
+import { Shell } from "../../components/web/shell";
 
 export default function NewHabitScreen() {
   return (

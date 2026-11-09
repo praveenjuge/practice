@@ -11,6 +11,7 @@ import {
 } from "@expo/ui";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert } from "react-native";
+import { HOST_THEME } from "../lib/app-colors";
 import {
   getHabitCategory,
   HABIT_CATEGORIES,
@@ -19,7 +20,6 @@ import {
   type HabitCategoryId,
   resolveHabitCategoryId,
 } from "../shared/habit-categories";
-import { HOST_THEME } from "./app-colors";
 
 export interface HabitFormInput {
   categoryId: HabitCategoryId;

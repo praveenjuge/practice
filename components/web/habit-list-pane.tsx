@@ -2,7 +2,7 @@ import { Text, TextInput } from "@expo/ui";
 import { router } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import type { Habit } from "../habits-store";
+import type { Habit } from "../../lib/habits-store";
 import { FONT_SUBHEAD, usePalette } from "./palette";
 import { AppButton, HoverPressable } from "./pointer";
 

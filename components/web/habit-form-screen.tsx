@@ -2,6 +2,7 @@ import { Text, TextInput } from "@expo/ui";
 import { router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
+import { useHabits } from "../../lib/habits-store";
 import { MAX_HABIT_NAME_LENGTH } from "../../shared/api-types";
 import {
   HABIT_CATEGORIES,
@@ -9,7 +10,6 @@ import {
   type HabitCategoryId,
   resolveHabitCategoryId,
 } from "../../shared/habit-categories";
-import { useHabits } from "../habits-store";
 import { InsetSection } from "./inset-section";
 import { DANGER_COLOR, FONT_BODY, usePalette } from "./palette";
 import { AppButton, HoverPressable } from "./pointer";

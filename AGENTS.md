@@ -131,7 +131,7 @@ Releases are built and uploaded locally with Xcode. Expo's hosted services (EAS 
    - Commit the release changes in one commit and push to `main` (house style). This also deploys the backend.
 
 3. **Build and upload**
-   - `bun run release:ios` (runs `scripts/release-ios.sh`): clean prebuild, `xcodebuild archive`, then export with `release/ExportOptions.plist`, which uploads straight to App Store Connect.
+   - `bun run release:ios` (runs `scripts/release-ios.sh`): clean prebuild, `xcodebuild archive`, then export with `scripts/ExportOptions.plist`, which uploads straight to App Store Connect.
    - Uses the Apple account signed in to Xcode (team `LW385M78LW`) with automatic signing. Takes about 10 minutes.
    - `EXPO_NO_DOTENV=1` is set so `.env.local` (the localhost API) is never baked in; store builds use the production API.
 
@@ -164,10 +164,10 @@ Releases are built and uploaded locally with Xcode. Expo's hosted services (EAS 
 
 ## Backend
 
-The backend is a Cloudflare Worker (`worker/`, Hono) with D1 (`migrations/`) and WorkOS AuthKit for auth.
+The backend is a Cloudflare Worker (`worker/`, Hono) with D1 (`worker/migrations/`) and WorkOS AuthKit for auth.
 
 - Keep logic on the server: validation, streaks and history are computed in `worker/`; the apps render what the API returns.
-- Schema changes go in a new numbered file in `migrations/`; never edit an applied migration.
+- Schema changes go in a new numbered file in `worker/migrations/`; never edit an applied migration.
 - Run `bun run test:api` after changing `worker/`. Tests run in the Workers runtime against a local D1.
 - Local runs need no secrets: `bun run dev:auth` (WorkOS emulator, seeded users in `workos-emulate.config.yaml`) + `bun run dev:api`. See README "Local development".
 - WorkOS project "Practice": Staging for optional real-auth testing, Production for the deployed Worker.

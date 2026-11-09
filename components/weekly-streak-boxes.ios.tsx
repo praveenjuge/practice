@@ -6,8 +6,8 @@ import {
   layoutPriority,
 } from "@expo/ui/swift-ui/modifiers";
 import { PlatformColor } from "react-native";
-import { APP_ACCENT_COLOR } from "./app-colors";
-import type { RecentDay } from "./habits-store";
+import { APP_ACCENT_COLOR } from "../lib/app-colors";
+import type { RecentDay } from "../lib/habits-store";
 
 const BOX_WIDTH = 16;
 const BOX_HEIGHT = 16;

@@ -1,5 +1,5 @@
-import { APP_ACCENT_COLOR } from "../app-colors";
-import { useThemePreference } from "../theme-preference";
+import { APP_ACCENT_COLOR } from "../../lib/app-colors";
+import { useThemePreference } from "../../lib/theme-preference";
 
 // Palette is the theming mechanism on web: @expo/ui universal components have
 // no cross-platform theming system (`Host` colorScheme is native-only), so we

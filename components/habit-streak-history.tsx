@@ -1,6 +1,6 @@
 import { useWindowDimensions } from "react-native";
+import type { HabitHistoryWeek } from "../lib/habits-store";
 import { HabitHistoryGrid, HISTORY_COLUMN_STRIDE } from "./habit-history-grid";
-import type { HabitHistoryWeek } from "./habits-store";
 
 // Horizontal space the list row takes around the grid (Material list insets).
 const ROW_INSETS = 48;

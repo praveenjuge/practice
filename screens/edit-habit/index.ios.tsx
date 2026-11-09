@@ -2,9 +2,9 @@ import { Host, HStack, List, Spacer, Text } from "@expo/ui/swift-ui";
 import { foregroundStyle } from "@expo/ui/swift-ui/modifiers";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
-import { APP_ACCENT_COLOR, HOST_THEME } from "../app-colors";
-import { HabitForm, type HabitFormInput } from "../habit-form";
-import { useHabits } from "../habits-store";
+import { HabitForm, type HabitFormInput } from "../../components/habit-form";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
+import { useHabits } from "../../lib/habits-store";
 
 export default function EditHabitScreen() {
   const { id } = useLocalSearchParams<{ id?: string | string[] }>();

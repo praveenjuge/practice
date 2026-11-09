@@ -10,7 +10,7 @@ export default defineConfig({
       miniflare: {
         bindings: {
           APP_ORIGIN: "https://practice.test",
-          TEST_MIGRATIONS: await readD1Migrations(`${root}/migrations`),
+          TEST_MIGRATIONS: await readD1Migrations(`${root}/worker/migrations`),
           WORKOS_API_KEY: "sk_test_practice",
           WORKOS_CLIENT_ID: "client_test_practice",
         },

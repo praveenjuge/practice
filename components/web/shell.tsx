@@ -2,7 +2,7 @@ import { Text } from "@expo/ui";
 import { router } from "expo-router";
 import { type ReactNode, useCallback, useState } from "react";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
-import { deleteAccount, signOut, useSession } from "../session";
+import { deleteAccount, signOut, useSession } from "../../lib/session";
 import { DeleteDialog } from "./delete-dialog";
 import { DANGER_COLOR, usePalette } from "./palette";
 import { AppButton, HoverPressable } from "./pointer";

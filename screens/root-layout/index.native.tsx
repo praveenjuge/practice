@@ -7,13 +7,13 @@ import {
 import { hideAsync, preventAutoHideAsync } from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
-import { APP_ACCENT_COLOR } from "../app-colors";
-import { HabitsProvider } from "../habits-store";
-import { restoreSession, useSession } from "../session";
+import { APP_ACCENT_COLOR } from "../../lib/app-colors";
+import { HabitsProvider } from "../../lib/habits-store";
+import { restoreSession, useSession } from "../../lib/session";
 import {
   ThemePreferenceProvider,
   useThemePreference,
-} from "../theme-preference";
+} from "../../lib/theme-preference";
 
 const SPLASH_TIMEOUT_MS = 10_000;
 

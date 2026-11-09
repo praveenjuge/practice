@@ -7,12 +7,12 @@ import {
   View,
 } from "react-native";
 import appIcon from "../../assets/icon.png";
-import { signIn } from "../session";
+import { signIn } from "../../lib/session";
 import {
   WELCOME_FEATURES,
   WELCOME_SUBTITLE,
   WELCOME_TITLE,
-} from "../welcome-copy";
+} from "../../lib/welcome-copy";
 import { DANGER_COLOR, FONT_SUBHEAD, usePalette } from "./palette";
 import { AppButton } from "./pointer";
 

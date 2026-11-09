@@ -1,7 +1,7 @@
 import { router, Stack } from "expo-router";
 import { useCallback } from "react";
-import { HabitForm, type HabitFormInput } from "../habit-form";
-import { useHabits } from "../habits-store";
+import { HabitForm, type HabitFormInput } from "../../components/habit-form";
+import { useHabits } from "../../lib/habits-store";
 
 export default function NewHabitScreen() {
   const { addHabit } = useHabits();

@@ -10,7 +10,11 @@ export LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8
 # Never bake .env.local (the localhost API) into a store build.
 export EXPO_NO_DOTENV=1
 
-ARCHIVE_PATH="build/Practice.xcarchive"
+# The export uploads straight to App Store Connect (with dSYMs), so the
+# archive is only needed while this script runs.
+BUILD_DIR="$(mktemp -d -t practice-release)"
+trap 'rm -rf "$BUILD_DIR"' EXIT
+ARCHIVE_PATH="$BUILD_DIR/Practice.xcarchive"
 
 bunx expo prebuild --platform ios --clean
 xcodebuild \
@@ -24,6 +28,6 @@ xcodebuild \
 xcodebuild \
   -exportArchive \
   -archivePath "$ARCHIVE_PATH" \
-  -exportOptionsPlist release/ExportOptions.plist \
-  -exportPath build/export \
+  -exportOptionsPlist scripts/ExportOptions.plist \
+  -exportPath "$BUILD_DIR/export" \
   -allowProvisioningUpdates

@@ -14,9 +14,14 @@ check-ins, streaks, search, and habit history.
 - `worker/` is the API, served at `/api/*` by the same Worker that serves the
   web build. It talks to WorkOS (sign-in, refresh, sign-out, account
   deletion) and D1, and computes streaks and history so the apps only render.
-- `migrations/` holds the D1 schema.
+- `worker/migrations/` holds the D1 schema.
 - `shared/` has the types and category list used by both sides.
-- `components/session.ts` is the app's whole auth client: it opens AuthKit in
+- `app/` holds the Expo Router routes. Each one renders a screen from
+  `screens/<name>/`, which has `index.tsx` (web), `index.ios.tsx` and
+  `index.android.tsx`.
+- `components/` holds shared UI (`components/web/` is web only), and `lib/`
+  holds state, session, theme and colors.
+- `lib/session.ts` is the app's whole auth client: it opens AuthKit in
   the system sign-in sheet (PKCE), keeps the access token in memory and the
   refresh token in the Keychain/Keystore (an httpOnly cookie on web).
 

@@ -3,15 +3,15 @@ import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { router, Stack, useLocalSearchParams } from "expo-router";
 import { useCallback } from "react";
 import { Alert } from "react-native";
-import { APP_ACCENT_COLOR, HOST_THEME } from "../app-colors";
-import { HabitStreakHistory } from "../habit-streak-history";
-import { useHabitDetail, useHabits } from "../habits-store";
+import { HabitStreakHistory } from "../../components/habit-streak-history";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
+import { useHabitDetail, useHabits } from "../../lib/habits-store";
 import {
   CHECK_ICON,
   CIRCLE_ICON,
   DELETE_ICON,
   EDIT_ICON,
-} from "../native-icons";
+} from "../../lib/native-icons";
 
 const UNCHECKED_COLOR = "#8b949e";
 const DANGER_COLOR = "#ef4444";

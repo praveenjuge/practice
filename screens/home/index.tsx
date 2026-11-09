@@ -1,10 +1,10 @@
 import { Text } from "@expo/ui";
 import { StyleSheet, View } from "react-native";
-import { useHabits } from "../habits-store";
-import { HabitDetailPane } from "../web/habit-detail-pane";
-import { HabitListPane } from "../web/habit-list-pane";
-import { FONT_SUBHEAD, usePalette } from "../web/palette";
-import { Shell, useIsWide } from "../web/shell";
+import { HabitDetailPane } from "../../components/web/habit-detail-pane";
+import { HabitListPane } from "../../components/web/habit-list-pane";
+import { FONT_SUBHEAD, usePalette } from "../../components/web/palette";
+import { Shell, useIsWide } from "../../components/web/shell";
+import { useHabits } from "../../lib/habits-store";
 
 export default function HomeScreen() {
   const { habits, isLoaded } = useHabits();

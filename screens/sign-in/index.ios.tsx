@@ -17,14 +17,14 @@ import {
   View,
 } from "react-native";
 import appIcon from "../../assets/icon.png";
-import { APP_ACCENT_COLOR, HOST_THEME } from "../app-colors";
-import { signIn } from "../session";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
+import { signIn } from "../../lib/session";
 import {
   WELCOME_FEATURES,
   WELCOME_SUBTITLE,
   WELCOME_TITLE,
   type WelcomeFeatureKey,
-} from "../welcome-copy";
+} from "../../lib/welcome-copy";
 
 const ICON_SIZE = 96;
 const FEATURE_ICON_WIDTH = 32;
