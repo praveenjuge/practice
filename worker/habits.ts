@@ -5,6 +5,7 @@ import {
   type Habit,
   type HabitDetail,
   type HabitList,
+  MAX_CHECKIN_AGE_DAYS,
   MAX_HABIT_NAME_LENGTH,
   RECENT_DAY_COUNT,
 } from "../shared/api-types";
@@ -14,6 +15,7 @@ import {
   buildRecentDays,
   buildYearHistory,
   computeHabitStats,
+  daysBefore,
   isValidDateString,
 } from "./stats";
 import { validate } from "./validate";
@@ -54,6 +56,8 @@ const habitInput = z.object({
         )
     ),
 });
+
+const checkinInput = z.object({ completed: z.boolean() });
 
 const toHabit = (row: HabitRow, dates: string[], today: string): Habit => {
   const dateSet = new Set(dates);
@@ -179,7 +183,41 @@ export const habitRoutes = new Hono<AppEnv>()
     }
     return c.json(await listHabits(c.env.DB, c.var.userId, today));
   })
+  // Sets one day's check-in. Idempotent, so offline, widget and Siri
+  // check-ins can be replayed safely. Only recent days can change.
+  .put(
+    "/:id/checkins/:date",
+    validate("query", todayQuery),
+    validate("json", checkinInput),
+    async (c) => {
+      const { today } = c.req.valid("query");
+      const { completed } = c.req.valid("json");
+      const id = c.req.param("id");
+      const date = c.req.param("date");
+      const age = isValidDateString(date) ? daysBefore(date, today) : -1;
+      if (age < 0 || age > MAX_CHECKIN_AGE_DAYS) {
+        throw apiError(400, "You can only change the last week's check-ins.");
+      }
+      const owned = await c.env.DB.prepare(
+        "SELECT 1 FROM habits WHERE id = ? AND owner_id = ?"
+      )
+        .bind(id, c.var.userId)
+        .first();
+      if (!owned) {
+        throw notFound();
+      }
+      await c.env.DB.prepare(
+        completed
+          ? "INSERT OR IGNORE INTO checkins (habit_id, owner_id, date) VALUES (?, ?, ?)"
+          : "DELETE FROM checkins WHERE habit_id = ? AND owner_id = ? AND date = ?"
+      )
+        .bind(id, c.var.userId, date)
+        .run();
+      return c.json(await listHabits(c.env.DB, c.var.userId, today));
+    }
+  )
   // Toggles today's check-in: removes it if present, otherwise adds it.
+  // Kept for app versions released before the PUT endpoint above.
   .post("/:id/toggle-today", validate("query", todayQuery), async (c) => {
     const { today } = c.req.valid("query");
     const id = c.req.param("id");

@@ -110,11 +110,9 @@ name: Sign in, track a habit, sign out
 - extendedWaitUntil:
     visible: "Total check-ins"
     timeout: 10000
-- scrollUntilVisible:
-    element: "Mark (as )?Complete"
-- tapOn: "Mark (as )?Complete"
+- tapOn: "Check in"
 - extendedWaitUntil:
-    visible: "Mark (as )?Incomplete"
+    visible: "Checked in"
     timeout: 10000
 
 # Then delete it.

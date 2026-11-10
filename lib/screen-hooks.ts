@@ -1,9 +1,14 @@
 // Behavior shared by the iOS and Android screens. Each screen keeps its own
 // platform UI and calls these for the logic.
-import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
+import {
+  NotificationFeedbackType,
+  notificationAsync,
+  selectionAsync,
+} from "expo-haptics";
 import { router } from "expo-router";
 import { useCallback, useMemo, useState } from "react";
 import { Alert } from "react-native";
+import type { ConfirmRequest } from "../components/confirm-dialog";
 import type { HabitFormInput } from "../components/habit-form";
 import { type Habit, useHabitIdParam, useHabits } from "./habits-store";
 import { signIn } from "./session";
@@ -15,19 +20,26 @@ export const showActionError = (title: string, error: unknown) => {
   );
 };
 
-/** Checks a habit in or out for today, with a haptic on check-in. */
+/**
+ * Checks a habit in or out for today. A light tick on every tap, and a
+ * success haptic when it completes the day. Check-ins queue and sync in the
+ * background, so this never fails offline.
+ */
 export function useToggleHabit() {
-  const { toggleCheckInToday } = useHabits();
+  const { habits, toggleCheckInToday } = useHabits();
   return useCallback(
     (habit: Pick<Habit, "checkedToday" | "id">) => {
-      if (!habit.checkedToday) {
+      const finishesDay =
+        !habit.checkedToday &&
+        habits.every((item) => item.id === habit.id || item.checkedToday);
+      if (finishesDay) {
         notificationAsync(NotificationFeedbackType.Success);
+      } else {
+        selectionAsync();
       }
-      toggleCheckInToday(habit.id).catch((error: unknown) => {
-        showActionError("Unable to update habit", error);
-      });
+      toggleCheckInToday(habit.id);
     },
-    [toggleCheckInToday]
+    [habits, toggleCheckInToday]
   );
 }
 
@@ -48,12 +60,38 @@ export function useHabitSearch(habits: Habit[]) {
   return { filteredHabits, handleSearch, trimmedSearchQuery };
 }
 
+/** Asks before deleting a habit, then deletes it. */
+export function useDeleteHabit(confirm: (request: ConfirmRequest) => void) {
+  const { deleteHabit } = useHabits();
+  return useCallback(
+    (habit: Pick<Habit, "id">, onDeleted?: () => void) => {
+      confirm({
+        confirmLabel: "Delete",
+        destructive: true,
+        message: "This removes the habit and its streak history.",
+        onConfirm: async () => {
+          notificationAsync(NotificationFeedbackType.Warning);
+          try {
+            await deleteHabit(habit.id);
+            onDeleted?.();
+          } catch (error) {
+            showActionError("Unable to delete habit", error);
+          }
+        },
+        title: "Delete habit?",
+      });
+    },
+    [confirm, deleteHabit]
+  );
+}
+
 /** Edit, toggle and delete for the habit details screen. */
 export function useHabitDetailActions(
-  habit: Pick<Habit, "checkedToday" | "id"> | undefined
+  habit: Pick<Habit, "checkedToday" | "id"> | undefined,
+  confirm: (request: ConfirmRequest) => void
 ) {
-  const { deleteHabit } = useHabits();
   const toggleHabit = useToggleHabit();
+  const deleteHabit = useDeleteHabit(confirm);
 
   const handleEdit = useCallback(() => {
     if (habit) {
@@ -68,29 +106,9 @@ export function useHabitDetailActions(
   }, [habit, toggleHabit]);
 
   const handleDelete = useCallback(() => {
-    if (!habit) {
-      return;
+    if (habit) {
+      deleteHabit(habit, router.back);
     }
-    Alert.alert(
-      "Delete habit?",
-      "This removes the habit and its streak history.",
-      [
-        { style: "cancel", text: "Cancel" },
-        {
-          onPress: async () => {
-            notificationAsync(NotificationFeedbackType.Warning);
-            try {
-              await deleteHabit(habit.id);
-              router.back();
-            } catch (error) {
-              showActionError("Unable to delete habit", error);
-            }
-          },
-          style: "destructive",
-          text: "Delete",
-        },
-      ]
-    );
   }, [deleteHabit, habit]);
 
   return { handleDelete, handleEdit, handleToggle };

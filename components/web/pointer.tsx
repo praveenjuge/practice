@@ -22,12 +22,14 @@ const pointerState = (state: PressableStateCallbackType): WebPointerState =>
 
 interface HoverPressableProps {
   accessibilityLabel?: string;
+  /** For role="checkbox": whether it is checked. */
+  checked?: boolean;
   children: ReactNode;
   disabled?: boolean;
   focusColor?: string;
   hoverStyle?: ViewStyle;
   onPress?: () => void;
-  role?: "button" | "link";
+  role?: "button" | "checkbox" | "link";
   style?: StyleProp<ViewStyle>;
 }
 
@@ -36,6 +38,7 @@ interface HoverPressableProps {
 // not expose hover/selection styling on web.
 export function HoverPressable({
   accessibilityLabel,
+  checked,
   children,
   disabled = false,
   focusColor,
@@ -63,6 +66,7 @@ export function HoverPressable({
   return (
     <Pressable
       accessibilityLabel={accessibilityLabel}
+      aria-checked={role === "checkbox" ? checked : undefined}
       disabled={disabled}
       onPress={onPress}
       role={role}

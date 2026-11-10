@@ -46,11 +46,8 @@ export function HabitDetailPane({ habitId }: { habitId?: string }) {
       return;
     }
     setError(null);
-    toggleCheckInToday(habit.id).catch((reason: unknown) => {
-      setError(
-        reason instanceof Error ? reason.message : "Unable to update habit."
-      );
-    });
+    // Queued and synced in the background, so it works offline too.
+    toggleCheckInToday(habit.id);
   }, [habit, toggleCheckInToday]);
 
   const handleDelete = useCallback(() => {

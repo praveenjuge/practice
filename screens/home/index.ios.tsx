@@ -1,5 +1,12 @@
 import { Host, Icon, List, ListItem } from "@expo/ui";
-import { Button, HStack, Text, VStack } from "@expo/ui/swift-ui";
+import {
+  Button,
+  ContextMenu,
+  HStack,
+  SwipeActions,
+  Text,
+  VStack,
+} from "@expo/ui/swift-ui";
 import {
   buttonStyle,
   contentShape,
@@ -7,6 +14,7 @@ import {
   frame,
   layoutPriority,
   shapes,
+  tint,
 } from "@expo/ui/swift-ui/modifiers";
 import { router, Stack } from "expo-router";
 import { memo, useCallback } from "react";
@@ -19,70 +27,135 @@ import {
 import { APP_ACCENT_COLOR, HOST_THEME } from "../../lib/app-colors";
 import { type Habit, useHabits } from "../../lib/habits-store";
 import { ADD_ICON, CHECK_ICON, CIRCLE_ICON } from "../../lib/native-icons";
-import { useHabitSearch, useToggleHabit } from "../../lib/screen-hooks";
+import {
+  useDeleteHabit,
+  useHabitSearch,
+  useToggleHabit,
+} from "../../lib/screen-hooks";
+import { useConfirmDialog } from "../../lib/use-confirm-dialog";
 
 const UNCHECKED_COLOR = "#c7c7cc";
+const ROW_HEIGHT = 64;
 const openNewHabit = () => router.push("/habit/new");
-
+const keyExtractor = (habit: Habit) => habit.id;
 interface HabitRowProps {
   habit: Habit;
+  onDelete: (habit: Habit) => void;
   onToggle: (habit: Habit) => void;
 }
 
 const HabitRow = memo(function HabitRowContent({
   habit,
+  onDelete,
   onToggle,
 }: HabitRowProps) {
   const { checkedToday } = habit;
   const iconColor = checkedToday ? APP_ACCENT_COLOR : UNCHECKED_COLOR;
+  const toggleLabel = checkedToday ? "Mark Incomplete" : "Check In";
   const handleOpen = useCallback(
     () => router.push(`/habit/${habit.id}`),
     [habit.id]
   );
+  const handleEdit = useCallback(
+    () => router.push(`/habit/edit/${habit.id}`),
+    [habit.id]
+  );
   const handleToggle = useCallback(() => onToggle(habit), [habit, onToggle]);
+  const handleDelete = useCallback(() => onDelete(habit), [habit, onDelete]);
 
   return (
-    <Button modifiers={[buttonStyle("plain")]} onPress={handleOpen}>
-      <HStack
-        alignment="center"
-        modifiers={[
-          contentShape(shapes.rectangle()),
-          frame({ maxWidth: Number.POSITIVE_INFINITY }),
-        ]}
-        spacing={12}
-      >
-        <Icon
-          accessibilityLabel={
-            checkedToday ? "Mark incomplete" : "Mark complete"
-          }
-          color={iconColor}
-          modifiers={[foregroundStyle(iconColor)]}
-          name={checkedToday ? CHECK_ICON : CIRCLE_ICON}
+    <SwipeActions>
+      <ContextMenu>
+        <ContextMenu.Items>
+          <Button
+            label={toggleLabel}
+            onPress={handleToggle}
+            systemImage={checkedToday ? "circle" : "checkmark.circle"}
+          />
+          <Button label="Edit" onPress={handleEdit} systemImage="pencil" />
+          {/* biome-ignore lint/a11y/useValidAriaRole: SwiftUI button role, not ARIA */}
+          <Button
+            label="Delete"
+            onPress={handleDelete}
+            role="destructive"
+            systemImage="trash"
+          />
+        </ContextMenu.Items>
+        <ContextMenu.Trigger>
+          <Button modifiers={[buttonStyle("plain")]} onPress={handleOpen}>
+            <HStack
+              alignment="center"
+              modifiers={[
+                contentShape(shapes.rectangle()),
+                frame({ maxWidth: Number.POSITIVE_INFINITY }),
+              ]}
+              spacing={12}
+            >
+              <Icon
+                accessibilityLabel={
+                  checkedToday ? "Mark incomplete" : "Mark complete"
+                }
+                color={iconColor}
+                modifiers={[foregroundStyle(iconColor)]}
+                name={checkedToday ? CHECK_ICON : CIRCLE_ICON}
+                onPress={handleToggle}
+                size={22}
+              />
+              <VStack
+                alignment="leading"
+                modifiers={[
+                  frame({ maxWidth: Number.POSITIVE_INFINITY }),
+                  layoutPriority(1),
+                ]}
+                spacing={2}
+              >
+                <Text>{habit.name}</Text>
+                <WeeklyStreakBoxes days={habit.recentDays} />
+              </VStack>
+            </HStack>
+          </Button>
+        </ContextMenu.Trigger>
+      </ContextMenu>
+      <SwipeActions.Actions edge="leading">
+        <Button
+          label={toggleLabel}
+          modifiers={[tint(checkedToday ? "#8e8e93" : APP_ACCENT_COLOR)]}
           onPress={handleToggle}
-          size={22}
+          systemImage={checkedToday ? "arrow.uturn.backward" : "checkmark"}
         />
-        <VStack
-          alignment="leading"
-          modifiers={[
-            frame({ maxWidth: Number.POSITIVE_INFINITY }),
-            layoutPriority(1),
-          ]}
-          spacing={2}
-        >
-          <Text>{habit.name}</Text>
-          <WeeklyStreakBoxes days={habit.recentDays} />
-        </VStack>
-      </HStack>
-    </Button>
+      </SwipeActions.Actions>
+      <SwipeActions.Actions allowsFullSwipe={false} edge="trailing">
+        {/* biome-ignore lint/a11y/useValidAriaRole: SwiftUI button role, not ARIA */}
+        <Button
+          label="Delete"
+          onPress={handleDelete}
+          role="destructive"
+          systemImage="trash"
+        />
+      </SwipeActions.Actions>
+    </SwipeActions>
   );
 });
 
 export default function HomeScreen() {
-  const { habits, isLoaded } = useHabits();
-  const { confirmDeleteAccount, confirmSignOut, email } = useAccountActions();
+  const { habits, isLoaded, refresh } = useHabits();
+  const { confirm, dialog } = useConfirmDialog();
+  const { confirmDeleteAccount, confirmSignOut, email } =
+    useAccountActions(confirm);
   const { filteredHabits, handleSearch, trimmedSearchQuery } =
     useHabitSearch(habits);
   const handleToggle = useToggleHabit();
+  const handleDelete = useDeleteHabit(confirm);
+  const renderRow = useCallback(
+    ({ item }: { item: Habit }) => (
+      <HabitRow habit={item} onDelete={handleDelete} onToggle={handleToggle} />
+    ),
+    [handleDelete, handleToggle]
+  );
+  const handleRefresh = useCallback(
+    () => refresh().catch(() => undefined),
+    [refresh]
+  );
 
   return (
     <>
@@ -124,7 +197,7 @@ export default function HomeScreen() {
         />
       </Stack.Toolbar>
       <Host {...HOST_THEME} style={{ flex: 1 }}>
-        <List>
+        <List onRefresh={handleRefresh}>
           {isLoaded && filteredHabits.length === 0 ? (
             <ListItem
               leading={
@@ -140,11 +213,16 @@ export default function HomeScreen() {
               No habits
             </ListItem>
           ) : null}
-          {filteredHabits.map((habit) => (
-            <HabitRow habit={habit} key={habit.id} onToggle={handleToggle} />
-          ))}
+          <List.ForEach
+            data={filteredHabits}
+            estimatedItemSize={ROW_HEIGHT}
+            keyExtractor={keyExtractor}
+          >
+            {renderRow}
+          </List.ForEach>
         </List>
       </Host>
+      {dialog}
     </>
   );
 }

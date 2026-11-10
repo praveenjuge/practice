@@ -3,6 +3,8 @@
 
 export const MAX_HABIT_NAME_LENGTH = 120;
 export const RECENT_DAY_COUNT = 30;
+/** Check-ins older than this many days can't be changed (offline replays). */
+export const MAX_CHECKIN_AGE_DAYS = 7;
 
 export interface HabitStats {
   bestStreak: number;

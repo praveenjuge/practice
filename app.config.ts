@@ -1,5 +1,18 @@
 import type { ExpoConfig } from "expo/config";
 
+// Kept outside the config literal: ExpoConfig's types don't list
+// noxcturnalTransformWorker yet, though Expo CLI reads it (SDK 58).
+const EXPERIMENTS = {
+  // Swift and Kotlin in these folders compile into the app: Siri and
+  // Spotlight (app-intents/), the year heatmap and the Android widget
+  // reader (native/).
+  inlineModules: { watchedDirectories: ["app-intents", "native"] },
+  // Rust (oxc) Metro transformer, about 2x faster cold bundling. Possible
+  // now that no Reanimated/Worklets Babel transforms are needed.
+  noxcturnalTransformWorker: true,
+  reactCompiler: true,
+};
+
 const config: ExpoConfig = {
   android: {
     // Badge-only layers sized for Android's safe zone, so launcher masks
@@ -18,9 +31,7 @@ const config: ExpoConfig = {
     // Bump for every Google Play upload.
     versionCode: 1,
   },
-  experiments: {
-    reactCompiler: true,
-  },
+  experiments: EXPERIMENTS,
   extra: {
     router: {},
   },
@@ -70,6 +81,46 @@ const config: ExpoConfig = {
     ],
     "expo-secure-store",
     "expo-web-browser",
+    "expo-app-intents",
+    // Must come before expo-widgets; see the plugin.
+    "./plugins/with-check-in-control.js",
+    [
+      "expo-widgets",
+      {
+        enableAndroid: true,
+        groupIdentifier: "group.com.praveenjuge.practice",
+        widgets: [
+          {
+            android: {
+              initialLayout: "widgets/today-widget.android.tsx",
+              targetCellHeight: 2,
+              targetCellWidth: 3,
+            },
+            description: "Check in today's habits.",
+            displayName: "Today",
+            ios: {
+              initialLayout: "widgets/today-widget.ios.tsx",
+              supportedFamilies: ["systemSmall", "systemMedium", "systemLarge"],
+            },
+            name: "TodayWidget",
+          },
+          {
+            android: null,
+            description: "How many of today's habits are done.",
+            displayName: "Progress",
+            ios: {
+              initialLayout: "widgets/progress-widget.ios.tsx",
+              supportedFamilies: [
+                "accessoryCircular",
+                "accessoryRectangular",
+                "accessoryInline",
+              ],
+            },
+            name: "ProgressWidget",
+          },
+        ],
+      },
+    ],
   ],
   scheme: "practice",
   slug: "practice",

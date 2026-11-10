@@ -3,6 +3,7 @@ import AddIcon from "@expo/material-symbols/add.xml";
 import { NotificationFeedbackType, notificationAsync } from "expo-haptics";
 import { useCallback } from "react";
 import { Alert, Platform } from "react-native";
+import type { ConfirmRequest } from "../components/confirm-dialog";
 import { deleteAccount, signOut, useSession } from "./session";
 
 // Toolbar icons: SF Symbols on iOS, Material Symbol drawables on Android
@@ -20,44 +21,40 @@ const showError = (title: string, error: unknown) => {
   );
 };
 
-// Account actions for the native toolbar menu, with native confirmations.
-export function useAccountActions() {
+// Account actions for the native toolbar menu, confirmed with the native
+// dialog from useConfirmDialog.
+export function useAccountActions(confirm: (request: ConfirmRequest) => void) {
   const session = useSession();
   const email = session.status === "signedIn" ? session.user.email : "";
 
   const confirmSignOut = useCallback(() => {
-    Alert.alert("Sign out?", email ? `You're signed in as ${email}.` : "", [
-      { style: "cancel", text: "Cancel" },
-      {
-        onPress: () => {
-          signOut().catch((error: unknown) => {
-            showError("Couldn't sign out", error);
-          });
-        },
-        text: "Sign Out",
+    confirm({
+      confirmLabel: "Sign Out",
+      message: email ? `You're signed in as ${email}.` : undefined,
+      onConfirm: () => {
+        signOut().catch((error: unknown) => {
+          showError("Couldn't sign out", error);
+        });
       },
-    ]);
-  }, [email]);
+      title: "Sign out?",
+    });
+  }, [confirm, email]);
 
   const confirmDeleteAccount = useCallback(() => {
-    Alert.alert(
-      "Delete your account?",
-      "This permanently deletes your account, habits and check-ins. It can't be undone.",
-      [
-        { style: "cancel", text: "Cancel" },
-        {
-          onPress: () => {
-            notificationAsync(NotificationFeedbackType.Warning);
-            deleteAccount().catch((error: unknown) => {
-              showError("Couldn't delete your account", error);
-            });
-          },
-          style: "destructive",
-          text: "Delete Account",
-        },
-      ]
-    );
-  }, []);
+    confirm({
+      confirmLabel: "Delete Account",
+      destructive: true,
+      message:
+        "This permanently deletes your account, habits and check-ins. It can't be undone.",
+      onConfirm: () => {
+        notificationAsync(NotificationFeedbackType.Warning);
+        deleteAccount().catch((error: unknown) => {
+          showError("Couldn't delete your account", error);
+        });
+      },
+      title: "Delete your account?",
+    });
+  }, [confirm]);
 
   return { confirmDeleteAccount, confirmSignOut, email };
 }

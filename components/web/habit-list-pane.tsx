@@ -2,7 +2,7 @@ import { Text, TextInput } from "@expo/ui";
 import { router } from "expo-router";
 import { memo, useCallback, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
-import type { Habit } from "../../lib/habits-store";
+import { type Habit, useHabits } from "../../lib/habits-store";
 import { FONT_SUBHEAD, usePalette } from "./palette";
 import { AppButton, HoverPressable } from "./pointer";
 
@@ -19,30 +19,54 @@ const HabitRow = memo(function HabitRowContent({
   const palette = usePalette();
   const isComplete = habit.checkedToday;
   const dots = habit.recentDays.slice(-MINI_DOT_COUNT);
+  const { toggleCheckInToday } = useHabits();
   const handleOpen = useCallback(
     () => router.push(`/habit/${habit.id}`),
     [habit.id]
   );
+  // The circle checks the habit in; the rest of the row opens it.
+  const handleToggle = useCallback(
+    () => toggleCheckInToday(habit.id),
+    [habit.id, toggleCheckInToday]
+  );
 
+  // The check-in circle and the "open" area are siblings, not nested, so
+  // each is its own control for keyboards and screen readers.
   return (
-    <HoverPressable
-      hoverStyle={{ backgroundColor: palette.hover }}
-      onPress={handleOpen}
+    <View
       style={[
         styles.row,
         isSelected ? { backgroundColor: palette.accentSoft } : null,
       ]}
     >
-      <View
-        style={[
-          styles.checkDot,
-          {
-            backgroundColor: isComplete ? palette.accent : "transparent",
-            borderColor: isComplete ? palette.accent : palette.secondary,
-          },
-        ]}
-      />
-      <View style={styles.rowMain}>
+      <HoverPressable
+        accessibilityLabel={
+          isComplete
+            ? `Mark ${habit.name} incomplete`
+            : `Check in ${habit.name}`
+        }
+        checked={isComplete}
+        hoverStyle={{ backgroundColor: palette.accentSoft }}
+        onPress={handleToggle}
+        role="checkbox"
+        style={styles.checkHit}
+      >
+        <View
+          style={[
+            styles.checkDot,
+            {
+              backgroundColor: isComplete ? palette.accent : "transparent",
+              borderColor: isComplete ? palette.accent : palette.secondary,
+            },
+          ]}
+        />
+      </HoverPressable>
+      <HoverPressable
+        accessibilityLabel={`Open ${habit.name}`}
+        hoverStyle={{ backgroundColor: palette.hover }}
+        onPress={handleOpen}
+        style={styles.rowMain}
+      >
         <Text
           numberOfLines={1}
           textStyle={{
@@ -68,8 +92,8 @@ const HabitRow = memo(function HabitRowContent({
             />
           ))}
         </View>
-      </View>
-    </HoverPressable>
+      </HoverPressable>
+    </View>
   );
 });
 
@@ -148,6 +172,9 @@ export function HabitListPane({
 
 const styles = StyleSheet.create({
   checkDot: { borderRadius: 10, borderWidth: 2, height: 20, width: 20 },
+  // A bigger target than the dot itself, pulled back so the row keeps its
+  // alignment.
+  checkHit: { borderRadius: 16, margin: -6, padding: 6 },
   content: { gap: 4, paddingBottom: 16, paddingHorizontal: 10 },
   empty: { padding: 24 },
   miniDot: { borderRadius: 3, height: 6, width: 6 },
@@ -161,11 +188,17 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderRadius: 10,
     flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 12,
+    gap: 6,
+    paddingLeft: 12,
+  },
+  rowMain: {
+    borderRadius: 10,
+    flex: 1,
+    gap: 6,
+    minWidth: 0,
+    paddingHorizontal: 6,
     paddingVertical: 11,
   },
-  rowMain: { flex: 1, gap: 6, minWidth: 0 },
   searchWrap: { flex: 1 },
   toolbar: { flexDirection: "row", gap: 10, padding: 14 },
 });

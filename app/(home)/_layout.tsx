@@ -6,6 +6,9 @@ const isWeb = Platform.OS === "web";
 export default function Layout() {
   return (
     <Stack
+      // React Activity: a screen with two or more screens above it is hidden
+      // (state kept, effects paused) so it stops re-rendering off screen.
+      activityEnabled={2}
       screenOptions={{
         headerLargeTitle: true,
         headerLargeTitleShadowVisible: false,

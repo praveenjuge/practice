@@ -3,15 +3,25 @@ import {
   Button,
   FieldGroup,
   Host,
-  List,
+  Icon,
   ListItem,
   Text,
   TextInput,
+  type TextInputRef,
   useNativeState,
 } from "@expo/ui";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  type Ref,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { Alert } from "react-native";
-import { HOST_THEME } from "../lib/app-colors";
+import { APP_ACCENT_COLOR, HOST_THEME } from "../lib/app-colors";
+import { CHEVRON_RIGHT_ICON } from "../lib/native-icons";
+
 import {
   getHabitCategory,
   HABIT_CATEGORIES,
@@ -20,6 +30,15 @@ import {
   type HabitCategoryId,
   resolveHabitCategoryId,
 } from "../shared/habit-categories";
+
+// The habit form for iOS and Android, from universal @expo/ui components:
+// a SwiftUI Form on iOS, Material 3 grouped lists on Android.
+
+const SECONDARY = { color: "#8e8e93" };
+const CHECKMARK_ICON = Icon.select({
+  android: import("@expo/material-symbols/check.xml"),
+  ios: "checkmark",
+});
 
 export interface HabitFormInput {
   categoryId: HabitCategoryId;
@@ -46,6 +65,7 @@ interface HabitFormProps {
 interface NativeTextInputProps {
   autoFocus?: boolean;
   initialValue: string;
+  inputRef?: Ref<TextInputRef>;
   onTextChange: (value: string) => void;
   placeholder: string;
 }
@@ -53,6 +73,7 @@ interface NativeTextInputProps {
 function NativeTextInput({
   autoFocus,
   initialValue,
+  inputRef,
   onTextChange,
   placeholder,
 }: NativeTextInputProps) {
@@ -63,6 +84,7 @@ function NativeTextInput({
       autoFocus={autoFocus}
       onChangeText={onTextChange}
       placeholder={placeholder}
+      ref={inputRef}
       returnKeyType="done"
       value={text}
     />
@@ -71,13 +93,11 @@ function NativeTextInput({
 
 function CategoryOption({
   categoryId,
-  group,
   isSelected,
   label,
   onSelect,
 }: {
   categoryId: HabitCategoryId;
-  group: string;
   isSelected: boolean;
   label: string;
   onSelect: (categoryId: HabitCategoryId) => void;
@@ -89,10 +109,9 @@ function CategoryOption({
   return (
     <ListItem
       onPress={handlePress}
-      supportingText={group}
       trailing={
         isSelected ? (
-          <Text textStyle={{ color: "#34c759" }}>Selected</Text>
+          <Icon color={APP_ACCENT_COLOR} name={CHECKMARK_ICON} size={18} />
         ) : undefined
       }
     >
@@ -156,11 +175,19 @@ export function HabitForm({
     setIsCategorySheetOpen(false);
   }, []);
 
+  const nameInputRef = useRef<TextInputRef>(null);
+
   const handleSubmit = useCallback(async () => {
     if (isSaving) {
       return;
     }
     setIsSaving(true);
+    // Release keyboard focus first: SwiftUI forms assert if they update rows
+    // while a text field inside them is still the first responder.
+    const nameInput: TextInputRef | null = nameInputRef.current;
+    if (nameInput) {
+      nameInput.blur();
+    }
     try {
       await onSubmit({ categoryId: selectedCategoryId, name });
     } catch (error) {
@@ -191,13 +218,19 @@ export function HabitForm({
           <NativeTextInput
             autoFocus={autoFocusName}
             initialValue={initialName}
+            inputRef={nameInputRef}
             key={`habit-name-${initialName}`}
             onTextChange={setName}
             placeholder="Habit name"
           />
           <ListItem
             onPress={openCategorySheet}
-            supportingText={selectedCategory.label}
+            trailing={
+              <>
+                <Text textStyle={SECONDARY}>{selectedCategory.label}</Text>
+                <Icon color="#8e8e93" name={CHEVRON_RIGHT_ICON} size={16} />
+              </>
+            }
           >
             Category
           </ListItem>
@@ -213,43 +246,43 @@ export function HabitForm({
         ) : null}
       </FieldGroup>
       <BottomSheet
+        contentPadding={0}
         isPresented={isCategorySheetOpen}
         onDismiss={closeCategorySheet}
         showDragIndicator
         snapPoints={["half", "full"]}
       >
-        <Host {...HOST_THEME} style={{ flex: 1 }}>
-          <FieldGroup>
-            <FieldGroup.Section title="Select Category">
-              <NativeTextInput
-                initialValue=""
-                key={`category-search-${searchInputKey}`}
-                onTextChange={setSearchQuery}
-                placeholder="Search categories"
-              />
-            </FieldGroup.Section>
-          </FieldGroup>
-          <List>
-            {groupedCategories.length === 0 ? (
+        <FieldGroup>
+          <FieldGroup.Section title="Select Category">
+            <NativeTextInput
+              initialValue=""
+              key={`category-search-${searchInputKey}`}
+              onTextChange={setSearchQuery}
+              placeholder="Search categories"
+            />
+          </FieldGroup.Section>
+          {groupedCategories.length === 0 ? (
+            <FieldGroup.Section>
               <ListItem supportingText="Try a different search term.">
                 No categories
               </ListItem>
-            ) : (
-              groupedCategories.map((section) =>
-                section.categories.map((category) => (
+            </FieldGroup.Section>
+          ) : (
+            groupedCategories.map((section) => (
+              <FieldGroup.Section key={section.group} title={section.group}>
+                {section.categories.map((category) => (
                   <CategoryOption
                     categoryId={category.id}
-                    group={section.group}
                     isSelected={category.id === selectedCategoryId}
                     key={category.id}
                     label={category.label}
                     onSelect={selectCategory}
                   />
-                ))
-              )
-            )}
-          </List>
-        </Host>
+                ))}
+              </FieldGroup.Section>
+            ))
+          )}
+        </FieldGroup>
       </BottomSheet>
     </Host>
   );

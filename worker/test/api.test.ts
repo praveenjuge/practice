@@ -232,6 +232,42 @@ describe("habits", () => {
     expect(remaining?.count).toBe(0);
   });
 
+  it("sets a recent day's check-in idempotently", async () => {
+    const { token } = await newUser();
+    const habit = await createHabit(token);
+    const setCheckin = (date: string, completed: boolean) =>
+      api(`/api/habits/${habit.id}/checkins/${date}?today=${TODAY}`, {
+        body: { completed },
+        method: "PUT",
+        token,
+      });
+
+    for (const _attempt of [1, 2]) {
+      // biome-ignore lint/performance/noAwaitInLoops: the repeat must run after the first
+      const response = await setCheckin(TODAY, true);
+      expect((await response.json<HabitList>()).habits[0]).toMatchObject({
+        checkedToday: true,
+        stats: { totalCheckins: 1 },
+      });
+    }
+
+    const yesterday = await setCheckin("2026-11-08", true);
+    expect((await yesterday.json<HabitList>()).habits[0]?.stats).toMatchObject({
+      currentStreak: 2,
+      totalCheckins: 2,
+    });
+
+    const cleared = await setCheckin(TODAY, false);
+    expect((await cleared.json<HabitList>()).habits[0]).toMatchObject({
+      checkedToday: false,
+      stats: { totalCheckins: 1 },
+    });
+
+    expect((await setCheckin("2026-10-01", true)).status).toBe(400);
+    expect((await setCheckin("2026-11-10", true)).status).toBe(400);
+    expect((await setCheckin("2026-02-30", true)).status).toBe(400);
+  });
+
   it("computes streaks and the year history on the server", async () => {
     const { id, token } = await newUser();
     const habit = await createHabit(token);
@@ -280,6 +316,11 @@ describe("habits", () => {
       }),
       api(`/api/habits/${habit.id}/toggle-today?today=${TODAY}`, {
         method: "POST",
+        token: other.token,
+      }),
+      api(`/api/habits/${habit.id}/checkins/${TODAY}?today=${TODAY}`, {
+        body: { completed: true },
+        method: "PUT",
         token: other.token,
       }),
       api(`/api/habits/${habit.id}?today=${TODAY}`, {

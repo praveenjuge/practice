@@ -54,6 +54,10 @@ export const isValidDateString = (value: string) => {
   return formatDate(parseDateString(value)) === value;
 };
 
+/** How many calendar days `date` falls before `today` (negative if after). */
+export const daysBefore = (date: string, today: string) =>
+  diffInDays(parseDateString(today), parseDateString(date));
+
 const streakFrom = (start: string, set: Set<string>) => {
   let count = 0;
   let cursor = start;

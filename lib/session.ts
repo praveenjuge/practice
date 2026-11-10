@@ -14,6 +14,7 @@ import type {
   AuthSession,
 } from "../shared/api-types";
 import type { AppType } from "../worker";
+import { readJSON, removeJSON, writeJSON } from "./local-store";
 
 // The app talks only to the Worker. It never sees the WorkOS API key; it only
 // holds a short-lived access token (memory) and, on native, the refresh token
@@ -22,6 +23,8 @@ import type { AppType } from "../worker";
 const isWeb = Platform.OS === "web";
 const PLATFORM = isWeb ? "web" : "native";
 const REFRESH_TOKEN_KEY = "practice.refreshToken";
+// The signed-in user, cached so launches can skip waiting on the network.
+const CACHED_USER_KEY = "user";
 const NATIVE_REDIRECT_URI = "practice://callback";
 const PRODUCTION_API_URL = "https://practice.praveenjuge.com";
 
@@ -34,7 +37,7 @@ const apiUrl = isWeb
 const isCompletingWebSignIn =
   isWeb && maybeCompleteAuthSession().type === "success";
 
-class ApiError extends Error {
+export class ApiError extends Error {
   readonly status: number;
 
   constructor(message: string, status: number) {
@@ -75,6 +78,7 @@ const readRefreshToken = () =>
 
 const clearLocalSession = async () => {
   accessToken = null;
+  removeJSON(CACHED_USER_KEY);
   if (!isWeb) {
     await deleteItemAsync(REFRESH_TOKEN_KEY);
   }
@@ -102,6 +106,7 @@ const applySession = async ({
   if (refreshToken) {
     await setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
   }
+  writeJSON(CACHED_USER_KEY, user);
   setState({ status: "signedIn", user });
 };
 
@@ -177,18 +182,27 @@ export const unwrap = async <T>(
   return response.json();
 };
 
+// With a cached user, shows the app right away and refreshes the session in
+// the background; only a rejected refresh signs the user out, so the app
+// also opens offline. Without one, waits for the refresh.
 export const restoreSession = async () => {
   if (isCompletingWebSignIn) {
     return;
+  }
+  const cachedUser = readJSON<AccountUser>(CACHED_USER_KEY);
+  if (cachedUser) {
+    setState({ status: "signedIn", user: cachedUser });
   }
   try {
     if (!(await refreshSession())) {
       await clearLocalSession();
     }
   } catch {
-    // Offline or server error: keep the stored session and show signed out
-    // for now; the next launch tries again.
-    setState({ status: "signedOut" });
+    // Offline or server error. Keep the cached session if there is one;
+    // otherwise show signed out and try again on the next launch.
+    if (!cachedUser) {
+      setState({ status: "signedOut" });
+    }
   }
 };
 
