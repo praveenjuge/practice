@@ -29,7 +29,7 @@ const config: ExpoConfig = {
     icon: "./assets/icon.png",
     package: "com.praveenjuge.practice",
     // Bump for every Google Play upload.
-    versionCode: 1,
+    versionCode: 2,
   },
   experiments: EXPERIMENTS,
   extra: {
@@ -39,7 +39,7 @@ const config: ExpoConfig = {
     appleTeamId: "LW385M78LW",
     // Bump for every App Store upload; it must be higher than any build
     // already uploaded (see TestFlight in App Store Connect).
-    buildNumber: "11",
+    buildNumber: "12",
     bundleIdentifier: "com.praveenjuge.practice",
     icon: "./assets/icon.png",
     infoPlist: {
@@ -125,7 +125,7 @@ const config: ExpoConfig = {
   scheme: "practice",
   slug: "practice",
   userInterfaceStyle: "automatic",
-  version: "2.0.0",
+  version: "2.1.0",
   web: {
     // Expo generates favicon.ico from this and links it in index.html.
     // The rest of the page head lives in public/index.html.
